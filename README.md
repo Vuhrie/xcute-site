@@ -1,16 +1,15 @@
 # xcute-site
 
-XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
+XCute is a modular Cloudflare Worker app with a shared scheduler and queue-first daily execution flow.
 
-## What is in v0.4.0
+## What is in v0.4.1
 
-- Queue-first scheduler UX at `/scheduler` (Today Queue is top/primary)
-- Spotify-like queue controls: `Start`, `Pause`, `Skip`, `Complete`, `Continue After Break`
-- Shared runtime queue state in D1 (works across tabs/devices)
-- Break flow by duration bucket (5m / 10m / 15m)
-- Goal-coupled planner workspace (tasks + spread controls tied to selected goal)
-- Full timeline view across goals with target-date/progress badges
-- Existing deterministic spread planner preserved (`/api/schedule/spread`)
+- Built-in D1 binding in `wrangler.jsonc` for `DB` (`xcute_scheduler`)
+- Smoother queue countdown with local optimistic start + gradual server reconciliation
+- Animated shifting progress bars for running state and preserved paused progress visuals
+- Selected goal workspace embedded directly inside the selected goal card
+- Encoding cleanup and UI polish for clearer status text
+- Existing queue APIs and deterministic spread planner preserved
 
 ## Routes
 
@@ -29,18 +28,11 @@ XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-fir
 - `POST /api/queue/complete`
 - `POST /api/queue/break/ack`
 
-## Required bindings now
+## Required bindings/secrets
 
 - `ASSETS` (static assets)
-- `DB` (D1 database binding)
+- `DB` (D1 binding, now defined in `wrangler.jsonc`)
 - `WRITE_API_KEY` (Worker secret; used by client in `x-write-key` for mutating API requests)
-
-Removed from the app:
-
-- `OTP_KV`
-- `SESSION_KV`
-- `RESEND_API_KEY`
-- `OTP_FROM_EMAIL`
 
 ## Deploy settings (Cloudflare Workers from Git)
 

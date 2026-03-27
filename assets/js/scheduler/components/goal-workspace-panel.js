@@ -1,47 +1,54 @@
 import { createTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
 import { getState, subscribe } from "../core/store.js";
 
-const template = document.createElement("template");
-template.innerHTML = `
-  <section class="x-panel">
-    <h3>Selected Goal Workspace</h3>
-    <p class="x-small" data-role="goal-caption">Pick a goal to manage tasks and schedule.</p>
+function buildTemplate(embedded) {
+  const wrapperClass = embedded ? "x-goal-workspace" : "x-panel";
+  const title = embedded ? "Workspace For This Goal" : "Selected Goal Workspace";
+  const subtitle = embedded
+    ? "Tasks and spread settings below apply only to this selected goal."
+    : "Pick a goal to manage tasks and schedule.";
 
-    <div class="x-divider"></div>
+  return `
+    <section class="${wrapperClass}">
+      <h3>${title}</h3>
+      <p class="x-small" data-role="goal-caption">${subtitle}</p>
 
-    <div class="x-row">
-      <label>Task title</label>
-      <input type="text" name="title" placeholder="Define planner data model" />
-    </div>
-    <div class="x-inline">
-      <div class="x-row x-grow">
-        <label>Estimate (minutes)</label>
-        <input type="number" name="estimate_min" min="5" step="5" value="60" />
+      <div class="x-divider"></div>
+
+      <div class="x-row">
+        <label>Task title</label>
+        <input type="text" name="title" placeholder="Define planner data model" />
       </div>
-      <button class="c-btn" data-action="add">Add Task</button>
-    </div>
-
-    <div class="x-list" data-role="tasks"></div>
-
-    <div class="x-divider"></div>
-
-    <div class="x-row">
-      <label>Start mode</label>
       <div class="x-inline">
-        <label><input type="radio" name="start_mode" value="today" checked /> Today</label>
-        <label><input type="radio" name="start_mode" value="tomorrow" /> Tomorrow</label>
+        <div class="x-row x-grow">
+          <label>Estimate (minutes)</label>
+          <input type="number" name="estimate_min" min="5" step="5" value="60" />
+        </div>
+        <button class="c-btn" data-action="add">Add Task</button>
       </div>
-    </div>
-    <div class="x-row">
-      <label>Target date override (optional)</label>
-      <input type="date" name="target_date" />
-    </div>
-    <div class="x-inline">
-      <button class="c-btn" data-action="spread">Generate Plan</button>
-    </div>
-    <p class="x-small" data-role="status"></p>
-  </section>
-`;
+
+      <div class="x-list" data-role="tasks"></div>
+
+      <div class="x-divider"></div>
+
+      <div class="x-row">
+        <label>Start mode</label>
+        <div class="x-inline">
+          <label><input type="radio" name="start_mode" value="today" checked /> Today</label>
+          <label><input type="radio" name="start_mode" value="tomorrow" /> Tomorrow</label>
+        </div>
+      </div>
+      <div class="x-row">
+        <label>Target date override (optional)</label>
+        <input type="date" name="target_date" />
+      </div>
+      <div class="x-inline">
+        <button class="c-btn" data-action="spread">Generate Plan</button>
+      </div>
+      <p class="x-small" data-role="status"></p>
+    </section>
+  `;
+}
 
 function taskRow(task, index, total) {
   const upDisabled = index === 0 ? "disabled" : "";
@@ -66,7 +73,8 @@ function taskRow(task, index, total) {
 
 export class GoalWorkspacePanel extends HTMLElement {
   connectedCallback() {
-    this.append(template.content.cloneNode(true));
+    this.embedded = this.dataset.embedded === "true";
+    this.innerHTML = buildTemplate(this.embedded);
     this.tasksNode = this.querySelector('[data-role="tasks"]');
     this.statusNode = this.querySelector('[data-role="status"]');
     this.captionNode = this.querySelector('[data-role="goal-caption"]');
@@ -112,7 +120,7 @@ export class GoalWorkspacePanel extends HTMLElement {
 
       if (action === "spread") {
         const startMode = this.querySelector('input[name="start_mode"]:checked')?.value || "today";
-        const targetDate = this.querySelector('input[name="target_date"]').value || null;
+        const targetDate = this.querySelector('[name="target_date"]').value || null;
         const result = await spreadSelectedGoal({ startMode, targetDate });
         this.statusNode.textContent = `Plan generated from ${result.start_date}${result.target_date ? ` to ${result.target_date}` : ""}.`;
         return;
@@ -146,7 +154,7 @@ export class GoalWorkspacePanel extends HTMLElement {
       return;
     }
 
-    this.captionNode.textContent = `${goal.title} • ${goal.daily_hours}h/day • Target: ${goal.target_date || "none"}`;
+    this.captionNode.textContent = `${goal.title} | ${goal.daily_hours}h/day | Target: ${goal.target_date || "none"}`;
     if (!tasks.length) {
       this.tasksNode.innerHTML = `<article class="x-item x-small">No tasks yet for this goal.</article>`;
       return;

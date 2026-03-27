@@ -24,7 +24,7 @@ function goalBadge(goal) {
   const ratio = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
   return `<article class="x-goal-badge">
     <strong>${goal.title}</strong>
-    <div class="x-small">Target: ${goal.target_date || "none"} • ${done}/${total} min</div>
+    <div class="x-small">Target: ${goal.target_date || "none"} | ${done}/${total} min</div>
     <div class="x-progress"><div class="x-progress__bar" style="transform: scaleX(${ratio})"></div></div>
   </article>`;
 }

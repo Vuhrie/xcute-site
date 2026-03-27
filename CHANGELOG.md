@@ -1,6 +1,22 @@
-Ôªø# Changelog
+# Changelog
 
 All notable changes for this project are documented in this file.
+
+## v0.4.1 - 2026-03-27
+
+### Added
+- Added in-repo D1 binding config in `wrangler.jsonc` for `DB` with `xcute_scheduler`.
+- Added richer queue progress visuals: shifting gradient while running and preserved progress on pause.
+
+### Changed
+- Embedded selected goal workspace directly inside the selected goal card for clearer ownership.
+- Improved queue timer behavior with optimistic local countdown and gradual server reconciliation to avoid visible jumps.
+- Updated scheduler and hub version labels to `v0.4.1`.
+
+### Fixed
+- Fixed text encoding artifacts in scheduler labels and separators.
+
+Rollback: `backup/v0.4.1`
 
 ## v0.4.0 - 2026-03-27
 
@@ -34,7 +50,7 @@ Rollback: `backup/v0.4.0`
 - Bumped version to `v0.3.1`.
 
 ### Fixed
-- Fixed confusing ‚Äúplan generated but empty‚Äù behavior for no-task goals by rendering a visible planned block.
+- Fixed confusing ìplan generated but emptyî behavior for no-task goals by rendering a visible planned block.
 
 Rollback: `backup/v0.3.1`
 
@@ -104,3 +120,6 @@ Rollback: `backup/v0.1.1`
 - N/A (initial versioned baseline).
 
 Rollback: `backup/v0.1.0`
+
+
+

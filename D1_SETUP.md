@@ -10,13 +10,15 @@ npx wrangler d1 create xcute_scheduler
 
 Copy the returned `database_id`.
 
-## 2. Bind DB in Cloudflare Worker dashboard
+## 2. Set DB binding in repo config
 
-1. Open Worker: `xcute-site`
-2. Go to **Settings -> Variables**
-3. Add **D1 binding**:
-   - Variable name: `DB`
-   - Database: `xcute_scheduler`
+`wrangler.jsonc` already includes:
+
+- binding: `DB`
+- database_name: `xcute_scheduler`
+- database_id: `2c263539-df20-417e-be23-5ff0c4e8f982`
+
+If you move to a different DB in future, update only the `database_id` in `wrangler.jsonc`.
 
 ## 3. Add write key secret
 

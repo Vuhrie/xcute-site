@@ -2,6 +2,13 @@
   "name": "xcute-site",
   "compatibility_date": "2026-03-27",
   "main": "src/worker.js",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "xcute_scheduler",
+      "database_id": "2c263539-df20-417e-be23-5ff0c4e8f982"
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./"

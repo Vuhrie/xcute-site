@@ -48,6 +48,7 @@ This project uses immutable backup branches and semantic versioning.
 - `backup/v0.3.0`
 - `backup/v0.3.1`
 - `backup/v0.4.0`
+- `backup/v0.4.1`
 
 ## Rollback
 
