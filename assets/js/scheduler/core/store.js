@@ -5,6 +5,11 @@
   tasks: [],
   schedule: [],
   overflow: [],
+  queueDate: new Date().toISOString().slice(0, 10),
+  queueItems: [],
+  queueSession: null,
+  timelineItems: [],
+  timelineGoals: [],
   writeKey: localStorage.getItem("xcute_write_key") || "",
 };
 

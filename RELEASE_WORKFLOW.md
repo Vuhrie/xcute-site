@@ -11,7 +11,7 @@ This project uses immutable backup branches and semantic versioning.
   - version bump in `VERSION`,
   - changelog entry in `CHANGELOG.md`,
   - deploy-ready Worker config,
-  - route checks for `/`, `/scheduler`, `/api/health`.
+  - route checks for `/`, `/scheduler`, `/api/health`, `/api/queue/today`.
 - Never force-push or rewrite any `backup/*` branch.
 
 ## Version bump policy
@@ -47,6 +47,7 @@ This project uses immutable backup branches and semantic versioning.
 - `backup/v0.2.0`
 - `backup/v0.3.0`
 - `backup/v0.3.1`
+- `backup/v0.4.0`
 
 ## Rollback
 

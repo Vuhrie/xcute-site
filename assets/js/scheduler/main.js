@@ -1,15 +1,15 @@
-﻿import { bootstrapScheduler, refreshGoalData } from "./core/actions.js";
+import { bootstrapScheduler, refreshGoalData, refreshTimeline, refreshTodayQueue } from "./core/actions.js";
 import { getState, subscribe } from "./core/store.js";
+import "./components/today-queue-panel.js";
 import "./components/write-key-panel.js";
 import "./components/goal-panel.js";
-import "./components/task-panel.js";
-import "./components/spread-panel.js";
+import "./components/goal-workspace-panel.js";
 import "./components/plan-view.js";
 
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.3.1";
+  node.textContent = "Version v0.4.0";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
     if (/^v\d+\.\d+\.\d+$/.test(text)) node.textContent = `Version ${text}`;
@@ -28,5 +28,10 @@ bootstrapScheduler().catch((error) => console.error(error));
 
 window.addEventListener("focus", () => {
   if (getState().selectedGoalId) refreshGoalData(getState().selectedGoalId).catch(() => {});
+  refreshTodayQueue().catch(() => {});
+  refreshTimeline().catch(() => {});
 });
 
+setInterval(() => {
+  refreshTimeline().catch(() => {});
+}, 15000);

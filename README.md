@@ -1,16 +1,16 @@
-﻿# xcute-site
+# xcute-site
 
-XCute is a modular Cloudflare Worker app with a space-themed hub and a simplified shared scheduler.
+XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
 
-## What is in v0.3.1
+## What is in v0.4.0
 
-- No-login shared scheduler at `/scheduler`
-- Goal -> ordered task -> date spread workflow
-- Deterministic spread engine (`/api/schedule/spread`)
-- D1-backed persistence for shared data
-- Write protection for changes using `x-write-key`
-- No-task overhead planning block (`Goal Focus: <Goal Name>`)
-- Clear per-goal edit controls (`Edit`/`Save`/`Cancel`)
+- Queue-first scheduler UX at `/scheduler` (Today Queue is top/primary)
+- Spotify-like queue controls: `Start`, `Pause`, `Skip`, `Complete`, `Continue After Break`
+- Shared runtime queue state in D1 (works across tabs/devices)
+- Break flow by duration bucket (5m / 10m / 15m)
+- Goal-coupled planner workspace (tasks + spread controls tied to selected goal)
+- Full timeline view across goals with target-date/progress badges
+- Existing deterministic spread planner preserved (`/api/schedule/spread`)
 
 ## Routes
 
@@ -21,6 +21,13 @@ XCute is a modular Cloudflare Worker app with a space-themed hub and a simplifie
 - `GET/POST/PATCH /api/tasks`
 - `POST /api/schedule/spread`
 - `GET /api/schedule/goal?goal_id=...`
+- `GET /api/schedule/timeline?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /api/queue/today?date=YYYY-MM-DD`
+- `POST /api/queue/start`
+- `POST /api/queue/pause`
+- `POST /api/queue/skip`
+- `POST /api/queue/complete`
+- `POST /api/queue/break/ack`
 
 ## Required bindings now
 
@@ -47,7 +54,7 @@ Production URL:
 
 ## D1 setup guide
 
-See `D1_SETUP.md` for step-by-step setup and migration commands.
+See `D1_SETUP.md` for setup and migration steps.
 
 ## Versioning
 

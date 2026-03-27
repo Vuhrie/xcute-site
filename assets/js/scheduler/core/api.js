@@ -35,4 +35,12 @@ export const api = {
   patchTask: (payload) => call("/api/tasks", { method: "PATCH", body: payload }),
   spread: (payload) => call("/api/schedule/spread", { method: "POST", body: payload }),
   getGoalSchedule: (goalId) => call(`/api/schedule/goal?goal_id=${encodeURIComponent(goalId || "")}`),
+  getTimeline: ({ from, to } = {}) =>
+    call(`/api/schedule/timeline?from=${encodeURIComponent(from || "")}&to=${encodeURIComponent(to || "")}`),
+  getTodayQueue: (date) => call(`/api/queue/today?date=${encodeURIComponent(date || "")}`),
+  queueStart: (payload) => call("/api/queue/start", { method: "POST", body: payload }),
+  queuePause: (payload) => call("/api/queue/pause", { method: "POST", body: payload }),
+  queueSkip: (payload) => call("/api/queue/skip", { method: "POST", body: payload }),
+  queueComplete: (payload) => call("/api/queue/complete", { method: "POST", body: payload }),
+  queueAckBreak: (payload) => call("/api/queue/break/ack", { method: "POST", body: payload }),
 };

@@ -2,6 +2,26 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.4.0 - 2026-03-27
+
+### Added
+- Added shared queue runtime API and persistence (`/api/queue/*`) with D1 state tables via `migrations/0004_queue_runtime_v040.sql`.
+- Added full timeline API endpoint for cross-goal schedule visibility (`GET /api/schedule/timeline`).
+- Added new frontend queue module with controls and animated progress (`today-queue-panel`).
+- Added selected-goal workspace module to couple task priority/spread controls directly to active goal (`goal-workspace-panel`).
+
+### Changed
+- Promoted Today Queue to top-most scheduler surface for immediate daily action.
+- Refactored scheduler layout to goal list + selected-goal workspace + full timeline.
+- Updated plan view to cross-goal timeline with target-date progress badges.
+- Updated Worker schedule regeneration to clean stale queue state after re-spread.
+- Bumped version to `v0.4.0`.
+
+### Fixed
+- Improved API error surfacing with explicit `request_failed` detail payloads for easier debugging.
+
+Rollback: `backup/v0.4.0`
+
 ## v0.3.1 - 2026-03-27
 
 ### Added

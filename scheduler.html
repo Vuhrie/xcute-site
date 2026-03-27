@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -24,23 +24,22 @@
     <main class="l-page l-scheduler-page">
       <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title">
         <a href="/" class="c-kicker">Back To Hub</a>
-        <p class="c-version-badge" id="scheduler-version">Version v0.3.1</p>
+        <p class="c-version-badge" id="scheduler-version">Version v0.4.0</p>
         <h1 id="scheduler-title" class="c-hero__title">Goal Scheduler</h1>
-        <p class="c-hero__subtitle">
-          Pick a goal, add prioritized tasks, then auto-spread work by your daily hours.
-        </p>
+        <p class="c-hero__subtitle">Open the site and instantly see today's queue, then manage goal tasks in one workspace.</p>
+      </section>
+
+      <section class="c-section" aria-label="today-queue">
+        <today-queue-panel></today-queue-panel>
       </section>
 
       <section class="c-section c-scheduler-grid" aria-labelledby="planner-title">
         <h2 id="planner-title" class="c-section__title">Planner</h2>
         <write-key-panel></write-key-panel>
         <goal-panel></goal-panel>
-        <task-panel></task-panel>
-        <spread-panel></spread-panel>
+        <goal-workspace-panel></goal-workspace-panel>
         <plan-view></plan-view>
       </section>
     </main>
   </body>
 </html>
-
-

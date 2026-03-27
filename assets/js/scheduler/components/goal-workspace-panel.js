@@ -1,11 +1,14 @@
-﻿import { createTask, reorderTask, updateTask } from "../core/actions.js";
+import { createTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
 import { getState, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
   <section class="x-panel">
-    <h3>Prioritized Tasks</h3>
-    <p class="x-small">Add tasks for the selected goal. Top task = highest priority.</p>
+    <h3>Selected Goal Workspace</h3>
+    <p class="x-small" data-role="goal-caption">Pick a goal to manage tasks and schedule.</p>
+
+    <div class="x-divider"></div>
+
     <div class="x-row">
       <label>Task title</label>
       <input type="text" name="title" placeholder="Define planner data model" />
@@ -19,6 +22,23 @@ template.innerHTML = `
     </div>
 
     <div class="x-list" data-role="tasks"></div>
+
+    <div class="x-divider"></div>
+
+    <div class="x-row">
+      <label>Start mode</label>
+      <div class="x-inline">
+        <label><input type="radio" name="start_mode" value="today" checked /> Today</label>
+        <label><input type="radio" name="start_mode" value="tomorrow" /> Tomorrow</label>
+      </div>
+    </div>
+    <div class="x-row">
+      <label>Target date override (optional)</label>
+      <input type="date" name="target_date" />
+    </div>
+    <div class="x-inline">
+      <button class="c-btn" data-action="spread">Generate Plan</button>
+    </div>
     <p class="x-small" data-role="status"></p>
   </section>
 `;
@@ -44,11 +64,12 @@ function taskRow(task, index, total) {
   </article>`;
 }
 
-export class TaskPanel extends HTMLElement {
+export class GoalWorkspacePanel extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
-    this.list = this.querySelector('[data-role="tasks"]');
-    this.status = this.querySelector('[data-role="status"]');
+    this.tasksNode = this.querySelector('[data-role="tasks"]');
+    this.statusNode = this.querySelector('[data-role="status"]');
+    this.captionNode = this.querySelector('[data-role="goal-caption"]');
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribe(() => this.render());
     this.render();
@@ -58,14 +79,19 @@ export class TaskPanel extends HTMLElement {
     this.unsubscribe?.();
   }
 
+  currentGoal() {
+    const { selectedGoalId, goals } = getState();
+    return goals.find((goal) => goal.id === selectedGoalId) || null;
+  }
+
   async onClick(event) {
     const action = event.target?.dataset?.action;
     if (!action) return;
     event.preventDefault();
 
-    const selectedGoalId = getState().selectedGoalId;
-    if (!selectedGoalId) {
-      this.status.textContent = "Pick a goal first.";
+    const goal = this.currentGoal();
+    if (!goal) {
+      this.statusNode.textContent = "Select a goal first.";
       return;
     }
 
@@ -74,13 +100,21 @@ export class TaskPanel extends HTMLElement {
         const title = this.querySelector('[name="title"]').value.trim();
         if (!title) return;
         await createTask({
-          goal_id: selectedGoalId,
+          goal_id: goal.id,
           title,
           estimate_min: Number.parseInt(this.querySelector('[name="estimate_min"]').value, 10) || 60,
           priority_rank: (getState().tasks?.length || 0) + 1,
         });
         this.querySelector('[name="title"]').value = "";
-        this.status.textContent = "Task added.";
+        this.statusNode.textContent = "Task added.";
+        return;
+      }
+
+      if (action === "spread") {
+        const startMode = this.querySelector('input[name="start_mode"]:checked')?.value || "today";
+        const targetDate = this.querySelector('input[name="target_date"]').value || null;
+        const result = await spreadSelectedGoal({ startMode, targetDate });
+        this.statusNode.textContent = `Plan generated from ${result.start_date}${result.target_date ? ` to ${result.target_date}` : ""}.`;
         return;
       }
 
@@ -89,33 +123,37 @@ export class TaskPanel extends HTMLElement {
 
       if (action === "up" || action === "down") {
         await reorderTask(id, action);
-        this.status.textContent = "Priority updated.";
+        this.statusNode.textContent = "Priority updated.";
         return;
       }
 
       if (action === "toggle") {
         await updateTask({ id, completed: event.target.dataset.value === "1" });
-        this.status.textContent = "Task status updated.";
+        this.statusNode.textContent = "Task status updated.";
       }
     } catch (error) {
-      this.status.textContent = `Error: ${error.message}`;
+      this.statusNode.textContent = `Error: ${error.message}`;
     }
   }
 
   render() {
-    const { selectedGoalId, tasks } = getState();
-    if (!selectedGoalId) {
-      this.list.innerHTML = `<article class="x-item x-small">Select a goal to manage tasks.</article>`;
+    const goal = this.currentGoal();
+    const tasks = getState().tasks || [];
+
+    if (!goal) {
+      this.captionNode.textContent = "Pick a goal to manage tasks and schedule.";
+      this.tasksNode.innerHTML = `<article class="x-item x-small">No goal selected.</article>`;
       return;
     }
 
+    this.captionNode.textContent = `${goal.title} • ${goal.daily_hours}h/day • Target: ${goal.target_date || "none"}`;
     if (!tasks.length) {
-      this.list.innerHTML = `<article class="x-item x-small">No tasks yet for this goal.</article>`;
+      this.tasksNode.innerHTML = `<article class="x-item x-small">No tasks yet for this goal.</article>`;
       return;
     }
 
-    this.list.innerHTML = tasks.map((task, index) => taskRow(task, index, tasks.length)).join("");
+    this.tasksNode.innerHTML = tasks.map((task, index) => taskRow(task, index, tasks.length)).join("");
   }
 }
 
-customElements.define("task-panel", TaskPanel);
+customElements.define("goal-workspace-panel", GoalWorkspacePanel);

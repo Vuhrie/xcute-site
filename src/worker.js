@@ -31,12 +31,53 @@ function asDateOrNull(value) {
   return DATE_PATTERN.test(raw) ? raw : null;
 }
 
+function asDateOrDefault(value, fallback) {
+  return asDateOrNull(value) || fallback;
+}
+
 function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed)) return fallback;
   if (parsed < min) return min;
   if (parsed > max) return max;
   return parsed;
+}
+
+function asInt(value, fallback = 0) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function breakSecondsForMinutes(minutes) {
+  const bounded = clampInt(minutes, 1, 6000, 30);
+  if (bounded <= 30) return 5 * 60;
+  if (bounded <= 90) return 10 * 60;
+  return 15 * 60;
+}
+
+function effectiveRemainingSec(session, now = Date.now()) {
+  const base = Math.max(0, asInt(session?.remaining_sec, 0));
+  if (!session || asInt(session.running, 0) !== 1) return base;
+  if (!session.started_at) return base;
+  const startMs = Date.parse(session.started_at);
+  if (Number.isNaN(startMs)) return base;
+  const elapsed = Math.max(0, Math.floor((now - startMs) / 1000));
+  return Math.max(0, base - elapsed);
+}
+
+function defaultSession(dateIso) {
+  return {
+    scope: SHARED_SCOPE,
+    date: dateIso,
+    mode: "task",
+    active_entry_id: null,
+    running: 0,
+    started_at: null,
+    remaining_sec: 0,
+    break_sec: 0,
+    state_version: 1,
+    updated_at: nowIso(),
+  };
 }
 
 async function readBody(request) {
@@ -142,6 +183,562 @@ async function listScheduleForGoal(db, goalId) {
   return results || [];
 }
 
+async function listTimeline(db, fromDate, toDate) {
+  const { results } = await db
+    .prepare(
+      `SELECT e.id AS entry_id,
+              e.goal_id,
+              g.title AS goal_title,
+              g.target_date AS goal_target_date,
+              g.daily_hours AS goal_daily_hours,
+              e.task_id,
+              e.title,
+              e.date,
+              e.minutes_allocated,
+              e.order_index,
+              e.created_at,
+              COALESCE(q.status, 'pending') AS queue_status
+       FROM schedule_entries e
+       JOIN shared_goals g ON g.id = e.goal_id AND g.scope = e.scope
+       LEFT JOIN queue_item_state q ON q.scope = e.scope AND q.date = e.date AND q.entry_id = e.id
+       WHERE e.scope = ? AND e.date >= ? AND e.date <= ?
+       ORDER BY e.date ASC, e.order_index ASC, e.created_at ASC`
+    )
+    .bind(SHARED_SCOPE, fromDate, toDate)
+    .all();
+
+  const items = (results || []).map((row) => ({
+    entry_id: row.entry_id,
+    goal_id: row.goal_id,
+    goal_title: row.goal_title,
+    goal_target_date: row.goal_target_date,
+    goal_daily_hours: asInt(row.goal_daily_hours, 2),
+    task_id: row.task_id,
+    title: row.title,
+    date: row.date,
+    minutes_allocated: asInt(row.minutes_allocated, 0),
+    order_index: asInt(row.order_index, 0),
+    queue_status: row.queue_status,
+    entry_done: row.queue_status === "done",
+  }));
+
+  const stats = new Map();
+  for (const item of items) {
+    if (!stats.has(item.goal_id)) {
+      stats.set(item.goal_id, {
+        id: item.goal_id,
+        title: item.goal_title,
+        target_date: item.goal_target_date,
+        daily_hours: item.goal_daily_hours,
+        total_min: 0,
+        completed_min: 0,
+      });
+    }
+    const stat = stats.get(item.goal_id);
+    stat.total_min += item.minutes_allocated;
+    if (item.entry_done) stat.completed_min += item.minutes_allocated;
+  }
+
+  const goals = [...stats.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+  return { items, goals };
+}
+
+async function getQueueSession(db, dateIso) {
+  const { results } = await db
+    .prepare(
+      `SELECT scope, date, mode, active_entry_id, running, started_at, remaining_sec, break_sec, state_version, updated_at
+       FROM queue_session_state
+       WHERE scope = ? AND date = ?
+       LIMIT 1`
+    )
+    .bind(SHARED_SCOPE, dateIso)
+    .all();
+  return (results || [])[0] || null;
+}
+
+async function saveQueueSession(db, dateIso, patch) {
+  const previous = (await getQueueSession(db, dateIso)) || defaultSession(dateIso);
+  const next = {
+    ...previous,
+    ...patch,
+    scope: SHARED_SCOPE,
+    date: dateIso,
+    running: asInt(patch.running ?? previous.running, 0) ? 1 : 0,
+    remaining_sec: Math.max(0, asInt(patch.remaining_sec ?? previous.remaining_sec, 0)),
+    break_sec: Math.max(0, asInt(patch.break_sec ?? previous.break_sec, 0)),
+    state_version: Math.max(1, asInt(patch.state_version ?? previous.state_version, 1)),
+    updated_at: nowIso(),
+  };
+
+  await db
+    .prepare(
+      `INSERT INTO queue_session_state
+        (scope, date, mode, active_entry_id, running, started_at, remaining_sec, break_sec, state_version, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(scope, date)
+       DO UPDATE SET
+         mode = excluded.mode,
+         active_entry_id = excluded.active_entry_id,
+         running = excluded.running,
+         started_at = excluded.started_at,
+         remaining_sec = excluded.remaining_sec,
+         break_sec = excluded.break_sec,
+         state_version = excluded.state_version,
+         updated_at = excluded.updated_at`
+    )
+    .bind(
+      next.scope,
+      next.date,
+      next.mode,
+      next.active_entry_id,
+      next.running,
+      next.started_at,
+      next.remaining_sec,
+      next.break_sec,
+      next.state_version,
+      next.updated_at
+    )
+    .run();
+
+  return next;
+}
+
+async function upsertQueueItemState(db, dateIso, entryId, patch = {}) {
+  const { results } = await db
+    .prepare(
+      `SELECT scope, date, entry_id, status, remaining_sec, order_override, updated_at, completed_at
+       FROM queue_item_state
+       WHERE scope = ? AND date = ? AND entry_id = ?
+       LIMIT 1`
+    )
+    .bind(SHARED_SCOPE, dateIso, entryId)
+    .all();
+
+  const prev = (results || [])[0] || {
+    scope: SHARED_SCOPE,
+    date: dateIso,
+    entry_id: entryId,
+    status: "pending",
+    remaining_sec: null,
+    order_override: null,
+    completed_at: null,
+    updated_at: nowIso(),
+  };
+
+  const next = {
+    ...prev,
+    ...patch,
+    scope: SHARED_SCOPE,
+    date: dateIso,
+    entry_id: entryId,
+    updated_at: nowIso(),
+  };
+
+  await db
+    .prepare(
+      `INSERT INTO queue_item_state
+        (scope, date, entry_id, status, remaining_sec, order_override, updated_at, completed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(scope, date, entry_id)
+       DO UPDATE SET
+         status = excluded.status,
+         remaining_sec = excluded.remaining_sec,
+         order_override = excluded.order_override,
+         updated_at = excluded.updated_at,
+         completed_at = excluded.completed_at`
+    )
+    .bind(
+      next.scope,
+      next.date,
+      next.entry_id,
+      next.status,
+      next.remaining_sec,
+      next.order_override,
+      next.updated_at,
+      next.completed_at
+    )
+    .run();
+
+  return next;
+}
+
+async function fetchQueueRows(db, dateIso) {
+  const { results } = await db
+    .prepare(
+      `SELECT e.id AS entry_id,
+              e.goal_id,
+              g.title AS goal_title,
+              g.target_date AS goal_target_date,
+              e.task_id,
+              e.title,
+              e.date,
+              e.minutes_allocated,
+              e.order_index,
+              e.created_at,
+              t.estimate_min,
+              COALESCE(q.status, 'pending') AS runtime_status,
+              q.remaining_sec,
+              q.order_override
+       FROM schedule_entries e
+       JOIN shared_goals g ON g.id = e.goal_id AND g.scope = e.scope
+       LEFT JOIN shared_tasks t ON t.id = e.task_id
+       LEFT JOIN queue_item_state q ON q.scope = e.scope AND q.date = e.date AND q.entry_id = e.id
+       WHERE e.scope = ? AND e.date = ?
+       ORDER BY COALESCE(q.order_override, e.order_index) ASC, e.created_at ASC`
+    )
+    .bind(SHARED_SCOPE, dateIso)
+    .all();
+
+  return (results || []).map((row) => ({
+    entry_id: row.entry_id,
+    goal_id: row.goal_id,
+    goal_title: row.goal_title,
+    goal_target_date: row.goal_target_date,
+    task_id: row.task_id,
+    title: row.title,
+    date: row.date,
+    minutes_allocated: asInt(row.minutes_allocated, 0),
+    order_index: asInt(row.order_index, 0),
+    estimate_min: asInt(row.estimate_min, asInt(row.minutes_allocated, 0)),
+    runtime_status: row.runtime_status,
+    remaining_sec: row.remaining_sec === null || row.remaining_sec === undefined ? null : asInt(row.remaining_sec, 0),
+    order_override: row.order_override === null || row.order_override === undefined ? null : asInt(row.order_override, 0),
+  }));
+}
+
+function entryPlannedSec(entry) {
+  return Math.max(60, asInt(entry.minutes_allocated, 0) * 60);
+}
+
+function entryRemainingSec(entry) {
+  if (entry.runtime_status === "done") return 0;
+  if (entry.remaining_sec === null || entry.remaining_sec === undefined) return entryPlannedSec(entry);
+  return Math.max(0, asInt(entry.remaining_sec, entryPlannedSec(entry)));
+}
+
+function firstPendingEntry(rows, excludeEntryId = "") {
+  return rows.find((row) => row.runtime_status !== "done" && row.entry_id !== excludeEntryId) || null;
+}
+
+async function maybeMarkTaskComplete(db, taskId) {
+  if (!taskId) return;
+
+  const { results } = await db
+    .prepare(
+      `SELECT COUNT(*) AS c
+       FROM schedule_entries e
+       LEFT JOIN queue_item_state q ON q.scope = e.scope AND q.date = e.date AND q.entry_id = e.id
+       WHERE e.scope = ? AND e.task_id = ? AND COALESCE(q.status, 'pending') != 'done'`
+    )
+    .bind(SHARED_SCOPE, taskId)
+    .all();
+
+  const count = asInt((results || [])[0]?.c, 0);
+  if (count !== 0) return;
+
+  await db
+    .prepare(`UPDATE shared_tasks SET completed = 1, updated_at = ? WHERE id = ? AND scope = ?`)
+    .bind(nowIso(), taskId, SHARED_SCOPE)
+    .run();
+}
+
+async function completeEntryAndStartBreak(db, dateIso, entryId) {
+  if (!entryId) return;
+
+  const rows = await fetchQueueRows(db, dateIso);
+  const entry = rows.find((row) => row.entry_id === entryId);
+  if (!entry || entry.runtime_status === "done") return;
+
+  await upsertQueueItemState(db, dateIso, entry.entry_id, {
+    status: "done",
+    remaining_sec: 0,
+    completed_at: nowIso(),
+  });
+
+  await maybeMarkTaskComplete(db, entry.task_id);
+
+  const nextRows = await fetchQueueRows(db, dateIso);
+  const nextPending = firstPendingEntry(nextRows);
+  const previousSession = (await getQueueSession(db, dateIso)) || defaultSession(dateIso);
+
+  if (!nextPending) {
+    await saveQueueSession(db, dateIso, {
+      mode: "task",
+      active_entry_id: null,
+      running: 0,
+      started_at: null,
+      remaining_sec: 0,
+      break_sec: 0,
+      state_version: asInt(previousSession.state_version, 1) + 1,
+    });
+    return;
+  }
+
+  const breakSec = breakSecondsForMinutes(entry.estimate_min || entry.minutes_allocated);
+  await saveQueueSession(db, dateIso, {
+    mode: "break",
+    active_entry_id: nextPending.entry_id,
+    running: 1,
+    started_at: nowIso(),
+    remaining_sec: breakSec,
+    break_sec: breakSec,
+    state_version: asInt(previousSession.state_version, 1) + 1,
+  });
+}
+
+async function normalizeQueueState(db, dateIso) {
+  let session = (await getQueueSession(db, dateIso)) || defaultSession(dateIso);
+  let rows = await fetchQueueRows(db, dateIso);
+
+  if (session.running === 1) {
+    const remaining = effectiveRemainingSec(session);
+    if (remaining <= 0) {
+      if (session.mode === "break") {
+        session = await saveQueueSession(db, dateIso, {
+          running: 0,
+          started_at: null,
+          remaining_sec: 0,
+          state_version: asInt(session.state_version, 1) + 1,
+        });
+      } else if (session.mode === "task" && session.active_entry_id) {
+        await completeEntryAndStartBreak(db, dateIso, session.active_entry_id);
+        session = (await getQueueSession(db, dateIso)) || defaultSession(dateIso);
+      }
+      rows = await fetchQueueRows(db, dateIso);
+    }
+  }
+
+  if (session.mode === "task") {
+    const activeValid = session.active_entry_id
+      ? rows.some((row) => row.entry_id === session.active_entry_id && row.runtime_status !== "done")
+      : false;
+
+    if (!activeValid) {
+      const firstPending = firstPendingEntry(rows);
+      if (firstPending) {
+        session = await saveQueueSession(db, dateIso, {
+          active_entry_id: firstPending.entry_id,
+          running: 0,
+          started_at: null,
+          remaining_sec: entryRemainingSec(firstPending),
+          break_sec: 0,
+          mode: "task",
+          state_version: asInt(session.state_version, 1) + 1,
+        });
+      } else if (session.active_entry_id || session.remaining_sec !== 0 || session.break_sec !== 0) {
+        session = await saveQueueSession(db, dateIso, {
+          active_entry_id: null,
+          running: 0,
+          started_at: null,
+          remaining_sec: 0,
+          break_sec: 0,
+          mode: "task",
+          state_version: asInt(session.state_version, 1) + 1,
+        });
+      }
+    }
+  }
+
+  return { rows, session };
+}
+
+function buildQueuePayload(rows, session, dateIso) {
+  const effectiveSessionRemaining = effectiveRemainingSec(session);
+  const items = rows.map((row) => {
+    const plannedSec = entryPlannedSec(row);
+    let status = row.runtime_status;
+    let remaining = entryRemainingSec(row);
+
+    if (session.mode === "task" && session.active_entry_id === row.entry_id && row.runtime_status !== "done") {
+      status = session.running === 1 ? "running" : "paused";
+      remaining = effectiveSessionRemaining;
+    }
+
+    return {
+      entry_id: row.entry_id,
+      goal_id: row.goal_id,
+      goal_title: row.goal_title,
+      task_id: row.task_id,
+      title: row.title,
+      date: row.date,
+      minutes_allocated: row.minutes_allocated,
+      order_index: row.order_override ?? row.order_index,
+      status,
+      planned_sec: plannedSec,
+      remaining_sec: Math.max(0, remaining),
+    };
+  });
+
+  return {
+    date: dateIso,
+    items,
+    session: {
+      mode: session.mode,
+      active_entry_id: session.active_entry_id,
+      running: asInt(session.running, 0),
+      started_at: session.started_at,
+      remaining_sec: effectiveSessionRemaining,
+      break_sec: asInt(session.break_sec, 0),
+      state_version: asInt(session.state_version, 1),
+      updated_at: session.updated_at,
+    },
+  };
+}
+
+async function getQueuePayload(db, dateIso) {
+  const normalized = await normalizeQueueState(db, dateIso);
+  return buildQueuePayload(normalized.rows, normalized.session, dateIso);
+}
+
+async function startQueue(db, dateIso, entryId) {
+  const { rows, session } = await normalizeQueueState(db, dateIso);
+
+  if (session.mode === "break") {
+    const remaining = effectiveRemainingSec(session);
+    if (remaining <= 0) return json({ error: "break_finished_ack_required" }, 409);
+
+    await saveQueueSession(db, dateIso, {
+      running: 1,
+      started_at: nowIso(),
+      remaining_sec: remaining,
+      state_version: asInt(session.state_version, 1) + 1,
+    });
+    return json(await getQueuePayload(db, dateIso));
+  }
+
+  const pendingRows = rows.filter((row) => row.runtime_status !== "done");
+  if (!pendingRows.length) return json({ error: "no_pending_items" }, 400);
+
+  let target = null;
+  if (entryId) {
+    target = pendingRows.find((row) => row.entry_id === entryId) || null;
+    if (!target) return json({ error: "entry_not_found" }, 404);
+  }
+
+  if (!target && session.active_entry_id) {
+    target = pendingRows.find((row) => row.entry_id === session.active_entry_id) || null;
+  }
+
+  if (!target) target = pendingRows[0];
+
+  const remaining = entryRemainingSec(target);
+  await upsertQueueItemState(db, dateIso, target.entry_id, {
+    status: "pending",
+    remaining_sec: remaining,
+    completed_at: null,
+  });
+
+  await saveQueueSession(db, dateIso, {
+    mode: "task",
+    active_entry_id: target.entry_id,
+    running: 1,
+    started_at: nowIso(),
+    remaining_sec: remaining,
+    break_sec: 0,
+    state_version: asInt(session.state_version, 1) + 1,
+  });
+
+  return json(await getQueuePayload(db, dateIso));
+}
+
+async function pauseQueue(db, dateIso) {
+  const { rows, session } = await normalizeQueueState(db, dateIso);
+  if (session.running !== 1) return json(buildQueuePayload(rows, session, dateIso));
+
+  const remaining = effectiveRemainingSec(session);
+
+  if (session.mode === "task" && session.active_entry_id) {
+    await upsertQueueItemState(db, dateIso, session.active_entry_id, {
+      status: "pending",
+      remaining_sec: remaining,
+      completed_at: null,
+    });
+  }
+
+  await saveQueueSession(db, dateIso, {
+    running: 0,
+    started_at: null,
+    remaining_sec: remaining,
+    state_version: asInt(session.state_version, 1) + 1,
+  });
+
+  return json(await getQueuePayload(db, dateIso));
+}
+
+async function skipQueue(db, dateIso) {
+  const { rows, session } = await normalizeQueueState(db, dateIso);
+  if (session.mode === "break") return json({ error: "cannot_skip_during_break" }, 409);
+
+  const active = session.active_entry_id
+    ? rows.find((row) => row.entry_id === session.active_entry_id && row.runtime_status !== "done")
+    : firstPendingEntry(rows);
+
+  if (!active) return json({ error: "no_pending_items" }, 400);
+
+  const maxOrder = rows.reduce((max, row) => Math.max(max, row.order_override ?? row.order_index), 0);
+  await upsertQueueItemState(db, dateIso, active.entry_id, {
+    status: "pending",
+    remaining_sec: entryPlannedSec(active),
+    order_override: maxOrder + 1,
+    completed_at: null,
+  });
+
+  const nextRows = await fetchQueueRows(db, dateIso);
+  const nextPending = firstPendingEntry(nextRows, active.entry_id);
+
+  await saveQueueSession(db, dateIso, {
+    mode: "task",
+    active_entry_id: nextPending?.entry_id || null,
+    running: 0,
+    started_at: null,
+    remaining_sec: nextPending ? entryRemainingSec(nextPending) : 0,
+    break_sec: 0,
+    state_version: asInt(session.state_version, 1) + 1,
+  });
+
+  return json(await getQueuePayload(db, dateIso));
+}
+
+async function completeQueue(db, dateIso) {
+  const { rows, session } = await normalizeQueueState(db, dateIso);
+  if (session.mode === "break") return json({ error: "cannot_complete_during_break" }, 409);
+
+  const active = session.active_entry_id
+    ? rows.find((row) => row.entry_id === session.active_entry_id && row.runtime_status !== "done")
+    : firstPendingEntry(rows);
+
+  if (!active) return json({ error: "no_pending_items" }, 400);
+
+  await completeEntryAndStartBreak(db, dateIso, active.entry_id);
+  return json(await getQueuePayload(db, dateIso));
+}
+
+async function ackBreak(db, dateIso) {
+  const { rows, session } = await normalizeQueueState(db, dateIso);
+  if (session.mode !== "break") return json(buildQueuePayload(rows, session, dateIso));
+
+  const remaining = effectiveRemainingSec(session);
+  if (remaining > 0) {
+    return json({ error: "break_not_finished", remaining_sec: remaining }, 409);
+  }
+
+  const pendingRows = rows.filter((row) => row.runtime_status !== "done");
+  const targeted = session.active_entry_id ? pendingRows.find((row) => row.entry_id === session.active_entry_id) : null;
+  const next = targeted || pendingRows[0] || null;
+
+  await saveQueueSession(db, dateIso, {
+    mode: "task",
+    active_entry_id: next?.entry_id || null,
+    running: 0,
+    started_at: null,
+    remaining_sec: next ? entryRemainingSec(next) : 0,
+    break_sec: 0,
+    state_version: asInt(session.state_version, 1) + 1,
+  });
+
+  return json(await getQueuePayload(db, dateIso));
+}
+
 async function spreadGoal(db, payload) {
   const goalId = String(payload.goal_id || "").trim();
   if (!goalId) return json({ error: "goal_id_required" }, 400);
@@ -157,9 +754,21 @@ async function spreadGoal(db, payload) {
 
   const tasks = (await listTasks(db, goalId)).filter((task) => Number(task.completed) !== 1);
 
+  const oldEntriesResult = await db
+    .prepare(`SELECT id, date FROM schedule_entries WHERE scope = ? AND goal_id = ?`)
+    .bind(SHARED_SCOPE, goalId)
+    .all();
+  const oldEntries = oldEntriesResult.results || [];
+
   const rows = [db.prepare("DELETE FROM schedule_entries WHERE scope = ? AND goal_id = ?").bind(SHARED_SCOPE, goalId)];
+  for (const oldEntry of oldEntries) {
+    rows.push(
+      db
+        .prepare(`DELETE FROM queue_item_state WHERE scope = ? AND date = ? AND entry_id = ?`)
+        .bind(SHARED_SCOPE, oldEntry.date, oldEntry.id)
+    );
+  }
   const overflow = [];
-  const entries = [];
 
   if (!tasks.length) {
     const entry = {
@@ -190,7 +799,6 @@ async function spreadGoal(db, payload) {
           entry.created_at
         )
     );
-    entries.push(entry);
   }
 
   let day = startDate;
@@ -228,7 +836,6 @@ async function spreadGoal(db, payload) {
         created_at: nowIso(),
       };
 
-      entries.push(entry);
       rows.push(
         db
           .prepare(
@@ -439,6 +1046,50 @@ async function handleApi(request, url, env) {
     return json({ items: await listScheduleForGoal(db, goalId) });
   }
 
+  if (path === "/api/schedule/timeline" && method === "GET") {
+    const fromDate = asDateOrDefault(url.searchParams.get("from"), todayIso());
+    const toDate = asDateOrDefault(url.searchParams.get("to"), addDays(fromDate, 30));
+    const safeTo = toDate >= fromDate ? toDate : fromDate;
+    const timeline = await listTimeline(db, fromDate, safeTo);
+    return json({ from: fromDate, to: safeTo, items: timeline.items, goals: timeline.goals });
+  }
+
+  if (path === "/api/queue/today" && method === "GET") {
+    const dateIso = asDateOrDefault(url.searchParams.get("date"), todayIso());
+    return json(await getQueuePayload(db, dateIso));
+  }
+
+  if (path === "/api/queue/start" && method === "POST") {
+    const body = await readBody(request);
+    const dateIso = asDateOrDefault(body.date, todayIso());
+    const entryId = String(body.entry_id || "").trim() || null;
+    return startQueue(db, dateIso, entryId);
+  }
+
+  if (path === "/api/queue/pause" && method === "POST") {
+    const body = await readBody(request);
+    const dateIso = asDateOrDefault(body.date, todayIso());
+    return pauseQueue(db, dateIso);
+  }
+
+  if (path === "/api/queue/skip" && method === "POST") {
+    const body = await readBody(request);
+    const dateIso = asDateOrDefault(body.date, todayIso());
+    return skipQueue(db, dateIso);
+  }
+
+  if (path === "/api/queue/complete" && method === "POST") {
+    const body = await readBody(request);
+    const dateIso = asDateOrDefault(body.date, todayIso());
+    return completeQueue(db, dateIso);
+  }
+
+  if (path === "/api/queue/break/ack" && method === "POST") {
+    const body = await readBody(request);
+    const dateIso = asDateOrDefault(body.date, todayIso());
+    return ackBreak(db, dateIso);
+  }
+
   return json({ error: "not_found" }, 404);
 }
 
@@ -455,7 +1106,13 @@ async function fetchAsset(request, env, overridePath) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, url, env);
+    if (url.pathname.startsWith("/api/")) {
+      try {
+        return await handleApi(request, url, env);
+      } catch (error) {
+        return json({ error: "request_failed", detail: String(error?.message || error || "unknown_error") }, 500);
+      }
+    }
     if (url.pathname === "/scheduler" || url.pathname === "/scheduler/") {
       return fetchAsset(request, env, "/scheduler.html");
     }

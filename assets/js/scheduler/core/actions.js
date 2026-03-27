@@ -1,4 +1,4 @@
-﻿import { api } from "./api.js";
+import { api } from "./api.js";
 import { getState, setState } from "./store.js";
 
 function ensureSelectedGoal(goals) {
@@ -6,6 +6,24 @@ function ensureSelectedGoal(goals) {
   const exists = goals.some((goal) => goal.id === wanted);
   if (exists) return wanted;
   return goals[0]?.id || "";
+}
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(dateIso, days) {
+  const date = new Date(`${dateIso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function applyQueueState(result) {
+  setState({
+    queueDate: result.date || todayIso(),
+    queueItems: result.items || [],
+    queueSession: result.session || null,
+  });
 }
 
 export async function refreshGoals() {
@@ -29,9 +47,25 @@ export async function refreshGoalData(goalId = getState().selectedGoalId) {
   });
 }
 
+export async function refreshTimeline(range = {}) {
+  const from = range.from || todayIso();
+  const to = range.to || addDays(from, 30);
+  const result = await api.getTimeline({ from, to });
+  setState({
+    timelineItems: result.items || [],
+    timelineGoals: result.goals || [],
+  });
+}
+
+export async function refreshTodayQueue(date = todayIso()) {
+  const result = await api.getTodayQueue(date);
+  applyQueueState(result);
+}
+
 export async function bootstrapScheduler() {
   const selectedGoalId = await refreshGoals();
   await refreshGoalData(selectedGoalId);
+  await Promise.all([refreshTodayQueue(), refreshTimeline()]);
 }
 
 export function selectGoal(goalId) {
@@ -41,22 +75,22 @@ export function selectGoal(goalId) {
 export async function createGoal(payload) {
   await api.createGoal(payload);
   const selectedGoalId = await refreshGoals();
-  await refreshGoalData(selectedGoalId);
+  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
 }
 
 export async function updateGoal(payload) {
   await api.patchGoal(payload);
-  await refreshGoals();
+  await Promise.all([refreshGoals(), refreshTimeline(), refreshTodayQueue()]);
 }
 
 export async function createTask(payload) {
   await api.createTask(payload);
-  await refreshGoalData(payload.goal_id);
+  await Promise.all([refreshGoalData(payload.goal_id), refreshTimeline(), refreshTodayQueue()]);
 }
 
 export async function updateTask(payload) {
   await api.patchTask(payload);
-  await refreshGoalData(getState().selectedGoalId);
+  await Promise.all([refreshGoalData(getState().selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
 }
 
 export async function reorderTask(taskId, direction) {
@@ -88,7 +122,7 @@ export async function spreadSelectedGoal({ startMode, targetDate }) {
     goal_id: goalId,
     start_mode: startMode === "tomorrow" ? "tomorrow" : "today",
     target_date: targetDate || null,
-    client_today: new Date().toISOString().slice(0, 10),
+    client_today: todayIso(),
   });
 
   setState({
@@ -96,5 +130,32 @@ export async function spreadSelectedGoal({ startMode, targetDate }) {
     overflow: result.overflow || [],
   });
 
+  await Promise.all([refreshTodayQueue(), refreshTimeline()]);
   return result;
+}
+
+export async function queueStart(entryId = "") {
+  const result = await api.queueStart({ date: getState().queueDate || todayIso(), entry_id: entryId || null });
+  applyQueueState(result);
+}
+
+export async function queuePause() {
+  const result = await api.queuePause({ date: getState().queueDate || todayIso() });
+  applyQueueState(result);
+}
+
+export async function queueSkip() {
+  const result = await api.queueSkip({ date: getState().queueDate || todayIso() });
+  applyQueueState(result);
+}
+
+export async function queueComplete() {
+  const result = await api.queueComplete({ date: getState().queueDate || todayIso() });
+  applyQueueState(result);
+  await Promise.all([refreshGoalData(), refreshTimeline()]);
+}
+
+export async function queueAckBreak() {
+  const result = await api.queueAckBreak({ date: getState().queueDate || todayIso() });
+  applyQueueState(result);
 }

@@ -1,4 +1,4 @@
-﻿# D1_SETUP
+# D1_SETUP
 
 Follow these steps once to enable shared persistent scheduler data.
 
@@ -41,9 +41,10 @@ If needed, apply local first:
 npx wrangler d1 migrations apply DB --local
 ```
 
-If you already ran v0.3.0 before, make sure the new v0.3.1 migration is also applied:
+For existing installs, ensure these migrations are applied:
 
 - `migrations/0003_schedule_overhead_v031.sql`
+- `migrations/0004_queue_runtime_v040.sql`
 
 ## 5. Deploy
 
@@ -59,4 +60,5 @@ npx wrangler versions upload
 2. Open `/scheduler`
 3. Save your write key in the **Write Key** panel
 4. Create a goal, add tasks, run **Generate Plan**
-5. Refresh page and confirm data persists
+5. Verify **Today Queue** controls work (`Start`, `Pause`, `Skip`, `Complete`)
+6. Refresh page and confirm queue/timeline state persists
