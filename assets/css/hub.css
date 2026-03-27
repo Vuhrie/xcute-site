@@ -1,0 +1,23 @@
+.c-hub-hero {
+  gap: var(--space-4);
+}
+
+.c-hub-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.c-hub-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.c-hub-card__btn {
+  margin-top: auto;
+}
+
+@media (max-width: 56rem) {
+  .c-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

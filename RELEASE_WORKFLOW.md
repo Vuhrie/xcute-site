@@ -11,7 +11,8 @@ This project uses immutable backup branches plus semantic versioning.
   - version bump in `VERSION`,
   - changelog entry in `CHANGELOG.md`,
   - deployed code update,
-  - valid Worker config in `wrangler.jsonc`.
+  - valid Worker config in `wrangler.jsonc`,
+  - stable API and route behavior checks (`/`, `/scheduler`, `/api/health`).
 - Never force-push or rewrite any `backup/*` branch.
 
 ## Version bump policy
@@ -34,6 +35,7 @@ This project uses immutable backup branches plus semantic versioning.
 6. Commit and deploy to `main`.
    - Deploy command: `npx wrangler versions upload`
 7. Verify site and version badge on production URL.
+8. Verify scheduler API health and planner behavior on `/scheduler`.
 
 ## Branch examples
 

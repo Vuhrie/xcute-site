@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>XCute | Animated Starter</title>
+    <title>XCute | Smart Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="./assets/css/base.css" />
     <link rel="stylesheet" href="./assets/css/components.css" />
     <link rel="stylesheet" href="./assets/css/animations.css" />
+    <link rel="stylesheet" href="./assets/css/hub.css" />
     <script type="module" src="./assets/js/main.js"></script>
   </head>
   <body>
@@ -21,32 +22,37 @@
     <div class="bg-orb bg-orb--right" aria-hidden="true"></div>
 
     <main class="l-page">
-      <section class="c-hero" aria-labelledby="hero-title">
-        <p class="c-kicker" data-animate="fade-up">Welcome</p>
-        <p class="c-version-badge js-version-badge" data-animate="zoom-in" data-delay="70">Version v0.1.1</p>
+      <section class="c-hero c-hub-hero" aria-labelledby="hero-title">
+        <p class="c-kicker" data-animate="fade-up">XCute Hub</p>
+        <p class="c-version-badge js-version-badge" data-animate="zoom-in" data-delay="70">Version v0.2.0</p>
         <h1 id="hero-title" class="c-hero__title js-hero-title" data-text="Helllo, I am XCute">
           Helllo, I am XCute
         </h1>
         <p class="c-hero__subtitle" data-animate="fade-up" data-delay="120">
-          A modular, animated website starter that is fast, simple, and easy to extend.
+          Your goal-focused productivity hub. Pick a module to continue.
         </p>
-        <a class="c-btn" href="#next" data-animate="fade-up" data-delay="220">Explore</a>
+        <a class="c-btn" href="#modules" data-animate="fade-up" data-delay="220">Open Modules</a>
       </section>
 
-      <section id="next" class="c-section" aria-labelledby="why-title">
-        <h2 id="why-title" class="c-section__title" data-animate="fade-up">Built To Scale</h2>
-        <div class="c-card-grid">
-          <article class="c-card" data-animate="fade-up" data-delay="80">
-            <h3 class="c-card__title">Modular CSS</h3>
-            <p class="c-card__body">Design tokens, components, and animations are split for easier edits.</p>
+      <section id="modules" class="c-section" aria-labelledby="module-title">
+        <h2 id="module-title" class="c-section__title" data-animate="fade-up">Modules</h2>
+        <div class="c-card-grid c-hub-grid">
+          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="80">
+            <h3 class="c-card__title">Smart Scheduler</h3>
+            <p class="c-card__body">
+              Build and auto-optimize your day with goal-aware scheduling and intelligent reflow.
+            </p>
+            <a class="c-btn c-hub-card__btn" href="/scheduler">Open Scheduler</a>
           </article>
-          <article class="c-card" data-animate="fade-up" data-delay="160">
-            <h3 class="c-card__title">Clean JS Modules</h3>
-            <p class="c-card__body">Each behavior lives in a focused module with `initX()` entry points.</p>
+          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="160">
+            <h3 class="c-card__title">Focus Console</h3>
+            <p class="c-card__body">Coming soon: daily focus sessions, review loops, and momentum tracking.</p>
+            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled>Coming Soon</button>
           </article>
-          <article class="c-card" data-animate="fade-up" data-delay="240">
-            <h3 class="c-card__title">Motion-Aware UX</h3>
-            <p class="c-card__body">Animations use transforms/opacity and respect reduced-motion preferences.</p>
+          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="240">
+            <h3 class="c-card__title">Reflection Journal</h3>
+            <p class="c-card__body">Coming soon: reflection prompts mapped back to goals and milestones.</p>
+            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled>Coming Soon</button>
           </article>
         </div>
       </section>

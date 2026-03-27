@@ -66,6 +66,14 @@
   background: var(--accent-strong);
 }
 
+.c-btn--muted,
+.c-btn:disabled {
+  background: #b9c3cc;
+  color: #ffffff;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .c-section {
   display: grid;
   gap: var(--space-8);

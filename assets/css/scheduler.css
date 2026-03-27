@@ -1,0 +1,98 @@
+.l-scheduler-page {
+  gap: var(--space-10);
+}
+
+.c-scheduler-hero {
+  gap: var(--space-4);
+}
+
+.c-scheduler-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+auth-panel,
+settings-panel,
+goal-board,
+task-composer,
+timeline-view,
+conflict-panel {
+  display: block;
+}
+
+.x-panel {
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.x-panel h3 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  margin-bottom: var(--space-4);
+}
+
+.x-row {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.x-row label {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.x-row input,
+.x-row select,
+.x-row textarea,
+.x-row button {
+  font: inherit;
+}
+
+.x-row input,
+.x-row select,
+.x-row textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  padding: 0.6rem 0.7rem;
+}
+
+.x-inline {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.x-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.x-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  padding: var(--space-3);
+}
+
+.x-small {
+  font-size: 0.84rem;
+  color: var(--text-soft);
+}
+
+.x-timeline-item {
+  display: grid;
+  gap: var(--space-1);
+}
+
+@media (max-width: 56rem) {
+  .c-scheduler-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

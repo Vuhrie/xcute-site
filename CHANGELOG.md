@@ -2,6 +2,25 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.2.0 - 2026-03-27
+
+### Added
+- Added Cloudflare Worker application runtime (`src/worker.js`) with API namespace under `/api/*`.
+- Added deterministic goal-focused scheduler engine with generate/reflow support (`src/planner.js`).
+- Added dedicated scheduler route page at `/scheduler` (`scheduler.html`).
+- Added modular scheduler frontend (vanilla Web Components) for auth, goals, milestones, tasks, timeline, conflicts, settings, and reminders.
+- Added homepage module hub design with explicit route cards.
+
+### Changed
+- Updated `wrangler.jsonc` to include Worker entrypoint while preserving static assets.
+- Upgraded product version to `v0.2.0`.
+- Updated runtime version labels and documentation for scheduler architecture and API-driven workflow.
+
+### Fixed
+- Consolidated routing and API handling in a single deploy unit to avoid page/API split drift.
+
+Rollback: `backup/v0.2.0`
+
 ## v0.1.1 - 2026-03-27
 
 ### Added
