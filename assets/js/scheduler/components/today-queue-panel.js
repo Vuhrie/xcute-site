@@ -110,15 +110,11 @@ export class TodayQueuePanel extends HTMLElement {
 
     const elapsed = Math.floor((now - this.localClock.anchorMs) / 1000);
     const localRemaining = Math.max(0, this.localClock.anchorRemaining - elapsed);
-    const delta = serverRemaining - localRemaining;
-
-    if (Math.abs(delta) > 2) {
-      const corrected = Math.max(0, Math.round(localRemaining + delta * 0.25));
+    const corrected = Math.min(localRemaining, serverRemaining);
+    if (corrected !== localRemaining) {
       this.localClock = { key, running, anchorMs: now, anchorRemaining: corrected };
-      return corrected;
     }
-
-    return localRemaining;
+    return corrected;
   }
 
   async onClick(event) {

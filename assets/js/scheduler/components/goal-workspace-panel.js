@@ -1,4 +1,4 @@
-import { createTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
+import { createTask, deleteTask as removeTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { getState, subscribe } from "../core/store.js";
 
@@ -62,6 +62,7 @@ function taskRow(task, index, total) {
         <button class="c-btn" data-action="toggle" data-id="${task.id}" data-value="${completed ? 0 : 1}">
           ${completed ? "Uncomplete" : "Complete"}
         </button>
+        <button class="c-btn c-btn--muted" data-action="delete" data-id="${task.id}">Delete</button>
       </div>
     </div>
   </article>`;
@@ -135,6 +136,15 @@ export class GoalWorkspacePanel extends HTMLElement {
       if (action === "toggle") {
         await updateTask({ id, completed: event.target.dataset.value === "1" });
         this.statusNode.textContent = "Task status updated.";
+        return;
+      }
+
+      if (action === "delete") {
+        const task = (getState().tasks || []).find((item) => item.id === id);
+        const approved = window.confirm(`Delete task "${task?.title || "this task"}"?`);
+        if (!approved) return;
+        await removeTask(id);
+        this.statusNode.textContent = "Task deleted.";
       }
     } catch (error) {
       this.statusNode.textContent = `Error: ${toUiError(error)}`;

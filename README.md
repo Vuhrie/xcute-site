@@ -19,8 +19,8 @@ XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-fir
 - `GET /` hub page
 - `GET /scheduler` scheduler page
 - `GET /api/health`
-- `GET/POST/PATCH /api/goals`
-- `GET/POST/PATCH /api/tasks`
+- `GET/POST/PATCH/DELETE /api/goals`
+- `GET/POST/PATCH/DELETE /api/tasks`
 - `POST /api/schedule/spread`
 - `GET /api/schedule/goal?goal_id=...`
 - `GET /api/schedule/timeline?from=YYYY-MM-DD&to=YYYY-MM-DD`

@@ -1,4 +1,4 @@
-import { createGoal, refreshGoalData, selectGoal, updateGoal } from "../core/actions.js";
+import { createGoal, deleteGoal as removeGoal, refreshGoalData, selectGoal, updateGoal } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { getState, subscribe } from "../core/store.js";
 
@@ -46,6 +46,7 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
       <div class="x-inline">
         <button class="c-btn" data-action="select" data-id="${goal.id}">Use</button>
         <button class="c-btn c-btn--muted" data-action="edit-start" data-id="${goal.id}">Edit</button>
+        <button class="c-btn c-btn--muted" data-action="delete" data-id="${goal.id}">Delete</button>
       </div>
     </div>
     ${
@@ -65,13 +66,6 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
         <button class="c-btn" data-action="edit-save" data-id="${goal.id}">Save</button>
         <button class="c-btn c-btn--muted" data-action="edit-cancel">Cancel</button>
       </div>
-    </div>`
-        : ""
-    }
-    ${
-      isSelected
-        ? `<div class="x-goal-workspace-embed">
-      <goal-workspace-panel data-embedded="true"></goal-workspace-panel>
     </div>`
         : ""
     }
@@ -147,6 +141,18 @@ export class GoalPanel extends HTMLElement {
         });
         this.editingGoalId = "";
         this.status.textContent = "Goal updated.";
+        return;
+      }
+
+      if (action === "delete") {
+        const id = String(event.target.dataset.id || "");
+        if (!id) return;
+        const goal = getState().goals.find((item) => item.id === id);
+        const approved = window.confirm(`Delete goal "${goal?.title || "this goal"}" and all linked tasks/schedule data?`);
+        if (!approved) return;
+        await removeGoal(id);
+        if (this.editingGoalId === id) this.editingGoalId = "";
+        this.status.textContent = "Goal deleted.";
       }
     } catch (error) {
       this.status.textContent = `Error: ${toUiError(error)}`;

@@ -183,6 +183,77 @@ async function listScheduleForGoal(db, goalId) {
   return results || [];
 }
 
+async function listEntryRefsByGoal(db, goalId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, date
+       FROM schedule_entries
+       WHERE scope = ? AND goal_id = ?`
+    )
+    .bind(SHARED_SCOPE, goalId)
+    .all();
+  return (results || []).map((row) => ({ id: row.id, date: row.date }));
+}
+
+async function listEntryRefsByTask(db, taskId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, date
+       FROM schedule_entries
+       WHERE scope = ? AND task_id = ?`
+    )
+    .bind(SHARED_SCOPE, taskId)
+    .all();
+  return (results || []).map((row) => ({ id: row.id, date: row.date }));
+}
+
+function uniqueDatesFromEntries(entries) {
+  const dates = new Set();
+  for (const entry of entries || []) {
+    const dateIso = String(entry?.date || "").trim();
+    if (DATE_PATTERN.test(dateIso)) dates.add(dateIso);
+  }
+  return [...dates].sort((a, b) => String(a).localeCompare(String(b)));
+}
+
+async function clearActiveSessionsForEntries(db, entries) {
+  if (!entries.length) return;
+  const stamp = nowIso();
+  const updates = entries.map((entry) =>
+    db
+      .prepare(
+        `UPDATE queue_session_state
+         SET mode = 'task',
+             active_entry_id = NULL,
+             running = 0,
+             started_at = NULL,
+             remaining_sec = 0,
+             break_sec = 0,
+             state_version = state_version + 1,
+             updated_at = ?
+         WHERE scope = ? AND date = ? AND active_entry_id = ?`
+      )
+      .bind(stamp, SHARED_SCOPE, entry.date, entry.id)
+  );
+  await db.batch(updates);
+}
+
+async function deleteQueueStateForEntries(db, entries) {
+  if (!entries.length) return;
+  const deletes = entries.map((entry) =>
+    db
+      .prepare(`DELETE FROM queue_item_state WHERE scope = ? AND date = ? AND entry_id = ?`)
+      .bind(SHARED_SCOPE, entry.date, entry.id)
+  );
+  await db.batch(deletes);
+}
+
+async function normalizeQueueDates(db, dates) {
+  for (const dateIso of dates) {
+    await normalizeQueueState(db, dateIso);
+  }
+}
+
 async function listTimeline(db, fromDate, toDate) {
   const { results } = await db
     .prepare(
@@ -273,6 +344,33 @@ async function getQueueSession(db, dateIso) {
     .bind(SHARED_SCOPE, dateIso)
     .all();
   return (results || [])[0] || null;
+}
+
+async function compactTaskRanks(db, goalId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, priority_rank
+       FROM shared_tasks
+       WHERE scope = ? AND goal_id = ?
+       ORDER BY priority_rank ASC, created_at ASC`
+    )
+    .bind(SHARED_SCOPE, goalId)
+    .all();
+
+  const updates = [];
+  const stamp = nowIso();
+  for (let i = 0; i < (results || []).length; i += 1) {
+    const row = results[i];
+    const nextRank = i + 1;
+    if (asInt(row.priority_rank, nextRank) === nextRank) continue;
+    updates.push(
+      db
+        .prepare(`UPDATE shared_tasks SET priority_rank = ?, updated_at = ? WHERE id = ? AND scope = ?`)
+        .bind(nextRank, stamp, row.id, SHARED_SCOPE)
+    );
+  }
+
+  if (updates.length) await db.batch(updates);
 }
 
 async function saveQueueSession(db, dateIso, patch) {
@@ -896,6 +994,59 @@ async function spreadGoal(db, payload) {
   });
 }
 
+async function deleteTaskCascade(db, taskId) {
+  const task = await findTask(db, taskId);
+  if (!task) return null;
+
+  const entries = await listEntryRefsByTask(db, taskId);
+  const affectedDates = uniqueDatesFromEntries(entries);
+
+  await clearActiveSessionsForEntries(db, entries);
+  await deleteQueueStateForEntries(db, entries);
+
+  await db.batch([
+    db.prepare(`DELETE FROM schedule_entries WHERE scope = ? AND task_id = ?`).bind(SHARED_SCOPE, taskId),
+    db.prepare(`DELETE FROM shared_tasks WHERE id = ? AND scope = ?`).bind(taskId, SHARED_SCOPE),
+  ]);
+
+  await compactTaskRanks(db, task.goal_id);
+  await normalizeQueueDates(db, affectedDates);
+
+  return {
+    deleted_task_id: taskId,
+    goal_id: task.goal_id,
+    affected_dates: affectedDates,
+  };
+}
+
+async function deleteGoalCascade(db, goalId) {
+  const goal = await findGoal(db, goalId);
+  if (!goal) return null;
+
+  const [entries, tasksResult] = await Promise.all([
+    listEntryRefsByGoal(db, goalId),
+    db.prepare(`SELECT COUNT(*) AS c FROM shared_tasks WHERE scope = ? AND goal_id = ?`).bind(SHARED_SCOPE, goalId).all(),
+  ]);
+  const affectedDates = uniqueDatesFromEntries(entries);
+
+  await clearActiveSessionsForEntries(db, entries);
+  await deleteQueueStateForEntries(db, entries);
+
+  await db.batch([
+    db.prepare(`DELETE FROM schedule_entries WHERE scope = ? AND goal_id = ?`).bind(SHARED_SCOPE, goalId),
+    db.prepare(`DELETE FROM shared_tasks WHERE scope = ? AND goal_id = ?`).bind(SHARED_SCOPE, goalId),
+    db.prepare(`DELETE FROM shared_goals WHERE id = ? AND scope = ?`).bind(goalId, SHARED_SCOPE),
+  ]);
+
+  await normalizeQueueDates(db, affectedDates);
+
+  return {
+    deleted_goal_id: goalId,
+    affected_dates: affectedDates,
+    deleted_task_count: asInt((tasksResult.results || [])[0]?.c, 0),
+  };
+}
+
 async function handleApi(request, url, env) {
   const method = request.method.toUpperCase();
   const path = url.pathname;
@@ -969,6 +1120,14 @@ async function handleApi(request, url, env) {
         .run();
 
       return json({ item: next });
+    }
+
+    if (method === "DELETE") {
+      const id = String(url.searchParams.get("id") || "").trim();
+      if (!id) return json({ error: "id_required" }, 400);
+      const result = await deleteGoalCascade(db, id);
+      if (!result) return json({ error: "goal_not_found" }, 404);
+      return json(result);
     }
   }
 
@@ -1051,6 +1210,14 @@ async function handleApi(request, url, env) {
         .run();
 
       return json({ item: next });
+    }
+
+    if (method === "DELETE") {
+      const id = String(url.searchParams.get("id") || "").trim();
+      if (!id) return json({ error: "id_required" }, 400);
+      const result = await deleteTaskCascade(db, id);
+      if (!result) return json({ error: "task_not_found" }, 404);
+      return json(result);
     }
   }
 

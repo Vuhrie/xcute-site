@@ -7,7 +7,7 @@
 }
 
 .c-scheduler-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -21,14 +21,6 @@ goal-workspace-panel,
 plan-view,
 today-queue-panel {
   display: block;
-}
-
-write-key-panel {
-  grid-column: 1 / -1;
-}
-
-plan-view {
-  grid-column: 1 / -1;
 }
 
 .x-panel {
@@ -150,13 +142,6 @@ plan-view {
   gap: var(--space-3);
 }
 
-.x-goal-workspace-embed {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px dashed rgba(168, 85, 247, 0.45);
-  animation: xWorkspaceOpen 320ms ease both;
-}
-
 .x-goal-workspace {
   display: grid;
   gap: var(--space-3);
@@ -258,17 +243,6 @@ plan-view {
   }
 }
 
-@keyframes xWorkspaceOpen {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .x-goal-badges {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -342,7 +316,6 @@ plan-view {
     background-position: 50% 50%;
   }
 
-  .x-goal-workspace-embed,
   .x-timeline-row {
     animation: none;
     opacity: 1;
@@ -351,15 +324,6 @@ plan-view {
 }
 
 @media (max-width: 56rem) {
-  .c-scheduler-grid {
-    grid-template-columns: 1fr;
-  }
-
-  write-key-panel,
-  plan-view {
-    grid-column: auto;
-  }
-
   .x-timeline-row {
     grid-template-columns: 1fr;
   }

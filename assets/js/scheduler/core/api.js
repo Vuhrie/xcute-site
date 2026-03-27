@@ -64,9 +64,11 @@ export const api = {
   getGoals: () => call("/api/goals"),
   createGoal: (payload) => call("/api/goals", { method: "POST", body: payload }),
   patchGoal: (payload) => call("/api/goals", { method: "PATCH", body: payload }),
+  deleteGoal: (id) => call(`/api/goals?id=${encodeURIComponent(id || "")}`, { method: "DELETE" }),
   getTasks: (goalId) => call(`/api/tasks?goal_id=${encodeURIComponent(goalId || "")}`),
   createTask: (payload) => call("/api/tasks", { method: "POST", body: payload }),
   patchTask: (payload) => call("/api/tasks", { method: "PATCH", body: payload }),
+  deleteTask: (id) => call(`/api/tasks?id=${encodeURIComponent(id || "")}`, { method: "DELETE" }),
   spread: (payload) => call("/api/schedule/spread", { method: "POST", body: payload }),
   getGoalSchedule: (goalId) => call(`/api/schedule/goal?goal_id=${encodeURIComponent(goalId || "")}`),
   getTimeline: ({ from, to } = {}) =>

@@ -107,6 +107,14 @@ export async function updateGoal(payload) {
   await Promise.all([refreshGoals(), refreshTimeline(), refreshTodayQueue()]);
 }
 
+export async function deleteGoal(goalId) {
+  const id = String(goalId || "").trim();
+  if (!id) return;
+  await api.deleteGoal(id);
+  const selectedGoalId = await refreshGoals();
+  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+}
+
 export async function createTask(payload) {
   await api.createTask(payload);
   await Promise.all([refreshGoalData(payload.goal_id), refreshTimeline(), refreshTodayQueue()]);
@@ -115,6 +123,14 @@ export async function createTask(payload) {
 export async function updateTask(payload) {
   await api.patchTask(payload);
   await Promise.all([refreshGoalData(getState().selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+}
+
+export async function deleteTask(taskId) {
+  const id = String(taskId || "").trim();
+  if (!id) return;
+  const selectedGoalId = getState().selectedGoalId;
+  await api.deleteTask(id);
+  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
 }
 
 export async function reorderTask(taskId, direction) {
