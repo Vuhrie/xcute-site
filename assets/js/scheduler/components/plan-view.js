@@ -45,7 +45,12 @@ export class PlanView extends HTMLElement {
         .map(([date, rows]) => {
           const total = rows.reduce((sum, row) => sum + (Number.parseInt(row.minutes_allocated, 10) || 0), 0);
           const items = rows
-            .map((row) => `<div class="x-small">${row.task_title || "Task"}: ${formatMinutes(row.minutes_allocated)}</div>`)
+            .map(
+              (row) =>
+                `<div class="x-small">${row.display_title || row.title || row.task_title || "Task"}: ${formatMinutes(
+                  row.minutes_allocated
+                )}</div>`
+            )
             .join("");
           return `<article class="x-item">
             <strong>${date}</strong>

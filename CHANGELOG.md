@@ -2,6 +2,22 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.3.1 - 2026-03-27
+
+### Added
+- Added schedule migration for nullable `task_id` and persisted schedule titles to support overhead rows (`migrations/0003_schedule_overhead_v031.sql`).
+
+### Changed
+- Updated spread behavior to create a one-day overhead block (`Goal Focus: <Goal Name>`) when a goal has no active tasks.
+- Updated schedule payload/query to expose a display title for both task-backed and system overhead rows.
+- Replaced ambiguous goal edit area with explicit per-goal `Edit`/`Save`/`Cancel` actions.
+- Bumped version to `v0.3.1`.
+
+### Fixed
+- Fixed confusing “plan generated but empty” behavior for no-task goals by rendering a visible planned block.
+
+Rollback: `backup/v0.3.1`
+
 ## v0.3.0 - 2026-03-27
 
 ### Added

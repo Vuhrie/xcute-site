@@ -102,6 +102,14 @@ plan-view {
   border-top: 1px dashed var(--border);
 }
 
+.x-edit-goal {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: var(--space-3);
+}
+
 .x-small {
   font-size: 0.84rem;
   color: var(--text-soft);

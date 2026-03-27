@@ -41,6 +41,10 @@ If needed, apply local first:
 npx wrangler d1 migrations apply DB --local
 ```
 
+If you already ran v0.3.0 before, make sure the new v0.3.1 migration is also applied:
+
+- `migrations/0003_schedule_overhead_v031.sql`
+
 ## 5. Deploy
 
 Push `main` and let Cloudflare run:

@@ -129,8 +129,9 @@ async function findTask(db, id) {
 async function listScheduleForGoal(db, goalId) {
   const { results } = await db
     .prepare(
-      `SELECT e.id, e.goal_id, e.task_id, e.date, e.minutes_allocated, e.order_index, e.created_at,
-              t.title AS task_title
+      `SELECT e.id, e.goal_id, e.task_id, e.title, e.date, e.minutes_allocated, e.order_index, e.created_at,
+              t.title AS task_title,
+              COALESCE(e.title, t.title, 'Task') AS display_title
        FROM schedule_entries e
        LEFT JOIN shared_tasks t ON t.id = e.task_id
        WHERE e.scope = ? AND e.goal_id = ?
@@ -160,6 +161,38 @@ async function spreadGoal(db, payload) {
   const overflow = [];
   const entries = [];
 
+  if (!tasks.length) {
+    const entry = {
+      id: crypto.randomUUID(),
+      goal_id: goalId,
+      task_id: null,
+      title: `Goal Focus: ${goal.title}`,
+      date: startDate,
+      minutes_allocated: dailyBudget,
+      order_index: 1,
+      created_at: nowIso(),
+    };
+    rows.push(
+      db
+        .prepare(
+          `INSERT INTO schedule_entries (id, scope, goal_id, task_id, title, date, minutes_allocated, order_index, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          entry.id,
+          SHARED_SCOPE,
+          entry.goal_id,
+          entry.task_id,
+          entry.title,
+          entry.date,
+          entry.minutes_allocated,
+          entry.order_index,
+          entry.created_at
+        )
+    );
+    entries.push(entry);
+  }
+
   let day = startDate;
   let dayRemaining = dailyBudget;
   let orderIndex = 1;
@@ -188,6 +221,7 @@ async function spreadGoal(db, payload) {
         id: crypto.randomUUID(),
         goal_id: goalId,
         task_id: task.id,
+        title: task.title,
         date: day,
         minutes_allocated: minutes,
         order_index: orderIndex,
@@ -198,14 +232,15 @@ async function spreadGoal(db, payload) {
       rows.push(
         db
           .prepare(
-            `INSERT INTO schedule_entries (id, scope, goal_id, task_id, date, minutes_allocated, order_index, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            `INSERT INTO schedule_entries (id, scope, goal_id, task_id, title, date, minutes_allocated, order_index, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             entry.id,
             SHARED_SCOPE,
             entry.goal_id,
             entry.task_id,
+            entry.title,
             entry.date,
             entry.minutes_allocated,
             entry.order_index,

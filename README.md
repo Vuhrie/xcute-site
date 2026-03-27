@@ -2,13 +2,15 @@
 
 XCute is a modular Cloudflare Worker app with a space-themed hub and a simplified shared scheduler.
 
-## What is in v0.3.0
+## What is in v0.3.1
 
 - No-login shared scheduler at `/scheduler`
 - Goal -> ordered task -> date spread workflow
 - Deterministic spread engine (`/api/schedule/spread`)
 - D1-backed persistence for shared data
 - Write protection for changes using `x-write-key`
+- No-task overhead planning block (`Goal Focus: <Goal Name>`)
+- Clear per-goal edit controls (`Edit`/`Save`/`Cancel`)
 
 ## Routes
 
