@@ -1,4 +1,4 @@
-*,
+﻿*,
 *::before,
 *::after {
   box-sizing: border-box;
@@ -14,7 +14,10 @@ body {
   position: relative;
   overflow-x: hidden;
   color: var(--text);
-  background: radial-gradient(circle at 20% 10%, #fff1df 0, transparent 34%), var(--bg);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(73, 37, 154, 0.35) 0, transparent 36%),
+    radial-gradient(circle at 82% 88%, rgba(11, 101, 141, 0.3) 0, transparent 34%),
+    var(--bg);
   font-family: var(--font-body);
   line-height: 1.5;
 }
@@ -46,11 +49,11 @@ a {
 
 .bg-orb {
   position: fixed;
-  width: 34rem;
-  height: 34rem;
+  width: 35rem;
+  height: 35rem;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.32;
+  filter: blur(95px);
+  opacity: 0.34;
   pointer-events: none;
   z-index: -1;
 }
@@ -58,13 +61,13 @@ a {
 .bg-orb--left {
   top: -8rem;
   left: -10rem;
-  background: #ffc07a;
+  background: #6d28d9;
 }
 
 .bg-orb--right {
   right: -12rem;
   bottom: -10rem;
-  background: #64d9d0;
+  background: #0e7490;
 }
 
 @media (max-width: 48rem) {

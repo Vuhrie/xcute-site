@@ -1,17 +1,17 @@
-:root {
+﻿:root {
   --font-heading: "Fraunces", "Times New Roman", serif;
   --font-body: "Space Grotesk", "Trebuchet MS", sans-serif;
 
-  --bg: #fffaf3;
-  --surface: #ffffff;
-  --surface-soft: #fff3e8;
-  --text: #1d2a36;
-  --text-soft: #4a5a69;
-  --accent: #0e9f9a;
-  --accent-strong: #0b7f7b;
-  --highlight: #ff8a3d;
-  --ring: rgba(14, 159, 154, 0.28);
-  --border: rgba(29, 42, 54, 0.12);
+  --bg: #08050f;
+  --surface: rgba(22, 16, 38, 0.84);
+  --surface-soft: rgba(42, 30, 73, 0.72);
+  --text: #f0ebff;
+  --text-soft: #c8bcf0;
+  --accent: #8b5cf6;
+  --accent-strong: #6d28d9;
+  --highlight: #22d3ee;
+  --ring: rgba(139, 92, 246, 0.45);
+  --border: rgba(206, 188, 255, 0.2);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -28,8 +28,8 @@
   --radius-lg: 1.25rem;
   --radius-xl: 1.75rem;
 
-  --shadow-soft: 0 14px 36px rgba(29, 42, 54, 0.08);
-  --shadow-pop: 0 24px 42px rgba(14, 159, 154, 0.18);
+  --shadow-soft: 0 18px 44px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 20px 42px rgba(109, 40, 217, 0.45);
 
   --ease-out: cubic-bezier(0.18, 0.88, 0.32, 1);
   --dur-fast: 180ms;

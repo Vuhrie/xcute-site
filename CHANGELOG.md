@@ -1,6 +1,25 @@
-# Changelog
+﻿# Changelog
 
 All notable changes for this project are documented in this file.
+
+## v0.3.0 - 2026-03-27
+
+### Added
+- Added D1 shared scheduler schema migration for goals, tasks, and schedule entries (`migrations/0002_shared_scheduler_v030.sql`).
+- Added a guided D1 setup document (`D1_SETUP.md`).
+- Added write-key protected mutation flow using `x-write-key` + `WRITE_API_KEY`.
+
+### Changed
+- Replaced OTP/user-scoped API with a shared no-login API in Worker runtime (`src/worker.js`).
+- Simplified scheduler UX to goal selection, ordered tasks, spread controls, and grouped plan view.
+- Applied full-site space theme (black/purple) through shared style tokens and component styles.
+- Updated docs for new bindings and deployment behavior.
+- Bumped version to `v0.3.0`.
+
+### Fixed
+- Removed legacy auth/milestone/reflow UI complexity that conflicted with the intended simple planning flow.
+
+Rollback: `backup/v0.3.0`
 
 ## v0.2.0 - 2026-03-27
 

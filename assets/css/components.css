@@ -1,6 +1,6 @@
-.c-hero {
+﻿.c-hero {
   padding: clamp(var(--space-10), 8vw, 6.5rem);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 243, 232, 0.68));
+  background: linear-gradient(150deg, rgba(31, 24, 53, 0.88), rgba(19, 14, 35, 0.84));
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
@@ -9,7 +9,7 @@
 }
 
 .c-kicker {
-  color: var(--accent-strong);
+  color: var(--highlight);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -21,9 +21,9 @@
   margin-top: calc(var(--space-2) * -1);
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  border: 1px solid rgba(14, 159, 154, 0.35);
-  background: rgba(14, 159, 154, 0.12);
-  color: var(--accent-strong);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  background: rgba(139, 92, 246, 0.16);
+  color: #d6c5ff;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -31,9 +31,9 @@
 }
 
 .c-version-badge.is-live {
-  border-color: rgba(255, 138, 61, 0.45);
-  background: rgba(255, 138, 61, 0.16);
-  color: #8a430f;
+  border-color: rgba(34, 211, 238, 0.5);
+  background: rgba(34, 211, 238, 0.14);
+  color: #a4ecff;
 }
 
 .c-hero__title {
@@ -45,31 +45,33 @@
 }
 
 .c-hero__subtitle {
-  max-width: 50ch;
+  max-width: 54ch;
   color: var(--text-soft);
   font-size: clamp(1rem, 2.4vw, 1.2rem);
 }
 
 .c-btn {
   width: fit-content;
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 0.75rem 1.2rem;
-  background: var(--accent);
-  color: #ffffff;
+  padding: 0.72rem 1.2rem;
+  background: linear-gradient(120deg, var(--accent), var(--accent-strong));
+  color: #f8f6ff;
   font-weight: 700;
-  transition: transform var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-fast);
+  transition: transform var(--dur-fast), box-shadow var(--dur-fast), filter var(--dur-fast);
 }
 
 .c-btn:hover {
   transform: translate3d(0, -2px, 0);
   box-shadow: var(--shadow-pop);
-  background: var(--accent-strong);
+  filter: brightness(1.08);
 }
 
 .c-btn--muted,
 .c-btn:disabled {
-  background: #b9c3cc;
-  color: #ffffff;
+  background: rgba(124, 105, 168, 0.45);
+  color: #ddd2ff;
+  border-color: rgba(197, 179, 241, 0.35);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -94,7 +96,7 @@
 
 .c-card {
   padding: var(--space-8);
-  background: var(--surface);
+  background: linear-gradient(150deg, rgba(30, 24, 51, 0.9), rgba(21, 16, 36, 0.84));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);

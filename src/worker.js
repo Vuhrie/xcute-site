@@ -1,43 +1,42 @@
-import { buildSchedule, todayIso } from "./planner.js";
+﻿const SHARED_SCOPE = "shared";
+const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-const OTP_TTL_MS = 10 * 60 * 1000;
-const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-
-const mem = {
-  usersByEmail: new Map(),
-  users: new Map(),
-  otp: new Map(),
-  sessions: new Map(),
-  goals: new Map(),
-  milestones: new Map(),
-  tasks: new Map(),
-  blocks: new Map(),
-  prefs: new Map(),
-};
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function id() {
-  return crypto.randomUUID();
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
+function addDays(dateIso, days) {
+  const date = new Date(`${dateIso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
-function emailOk(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+function asDateOrNull(value) {
+  const raw = String(value || "").trim();
+  return DATE_PATTERN.test(raw) ? raw : null;
 }
 
-function bearer(request) {
-  const raw = request.headers.get("authorization") || "";
-  const [scheme, token] = raw.split(" ");
-  return scheme?.toLowerCase() === "bearer" ? token : "";
+function clampInt(value, min, max, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
 }
 
 async function readBody(request) {
@@ -49,96 +48,363 @@ async function readBody(request) {
   }
 }
 
-function forUser(store, userId) {
-  return [...store.values()].filter((x) => x.user_id === userId);
+function assertDb(env) {
+  if (env.DB && typeof env.DB.prepare === "function") return null;
+  return json({ error: "db_not_configured", detail: "Missing D1 binding `DB`." }, 500);
 }
 
-function sortByCreatedDesc(items) {
-  return items.sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
-}
-
-function userData(userId) {
-  return {
-    goals: sortByCreatedDesc(forUser(mem.goals, userId)),
-    milestones: sortByCreatedDesc(forUser(mem.milestones, userId)),
-    tasks: sortByCreatedDesc(forUser(mem.tasks, userId)),
-  };
-}
-
-function sessionUser(request) {
-  const token = bearer(request);
-  if (!token) return null;
-  const session = mem.sessions.get(token);
-  if (!session) return null;
-  if (Date.now() > session.expiresAt) {
-    mem.sessions.delete(token);
-    return null;
+function assertWriteKey(request, env) {
+  if (!WRITE_METHODS.has(request.method.toUpperCase())) return null;
+  const expected = String(env.WRITE_API_KEY || "").trim();
+  if (!expected) {
+    return json({ error: "write_key_not_configured", detail: "Missing env var `WRITE_API_KEY`." }, 500);
   }
-  return session.user;
+  const provided = String(request.headers.get("x-write-key") || "").trim();
+  if (!provided || provided !== expected) return json({ error: "forbidden" }, 403);
+  return null;
 }
 
-function getPrefs(userId) {
-  return (
-    mem.prefs.get(userId) || {
-      user_id: userId,
-      timezone: "UTC",
-      work_start: "09:00",
-      work_end: "18:00",
-      break_min: 10,
-      buffer_min: 5,
-      updated_at: nowIso(),
+async function listGoals(db) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, target_date, daily_hours, created_at, updated_at
+       FROM shared_goals
+       WHERE scope = ?
+       ORDER BY updated_at DESC, created_at DESC`
+    )
+    .bind(SHARED_SCOPE)
+    .all();
+  return results || [];
+}
+
+async function findGoal(db, id) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, target_date, daily_hours, created_at, updated_at
+       FROM shared_goals
+       WHERE id = ? AND scope = ?
+       LIMIT 1`
+    )
+    .bind(id, SHARED_SCOPE)
+    .all();
+  return (results || [])[0] || null;
+}
+
+async function listTasks(db, goalId) {
+  const query = goalId
+    ? db
+        .prepare(
+          `SELECT id, goal_id, title, priority_rank, estimate_min, completed, created_at, updated_at
+           FROM shared_tasks
+           WHERE scope = ? AND goal_id = ?
+           ORDER BY priority_rank ASC, created_at ASC`
+        )
+        .bind(SHARED_SCOPE, goalId)
+    : db
+        .prepare(
+          `SELECT id, goal_id, title, priority_rank, estimate_min, completed, created_at, updated_at
+           FROM shared_tasks
+           WHERE scope = ?
+           ORDER BY goal_id ASC, priority_rank ASC, created_at ASC`
+        )
+        .bind(SHARED_SCOPE);
+
+  const { results } = await query.all();
+  return results || [];
+}
+
+async function findTask(db, id) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, goal_id, title, priority_rank, estimate_min, completed, created_at, updated_at
+       FROM shared_tasks
+       WHERE id = ? AND scope = ?
+       LIMIT 1`
+    )
+    .bind(id, SHARED_SCOPE)
+    .all();
+  return (results || [])[0] || null;
+}
+
+async function listScheduleForGoal(db, goalId) {
+  const { results } = await db
+    .prepare(
+      `SELECT e.id, e.goal_id, e.task_id, e.date, e.minutes_allocated, e.order_index, e.created_at,
+              t.title AS task_title
+       FROM schedule_entries e
+       LEFT JOIN shared_tasks t ON t.id = e.task_id
+       WHERE e.scope = ? AND e.goal_id = ?
+       ORDER BY e.date ASC, e.order_index ASC, e.created_at ASC`
+    )
+    .bind(SHARED_SCOPE, goalId)
+    .all();
+  return results || [];
+}
+
+async function spreadGoal(db, payload) {
+  const goalId = String(payload.goal_id || "").trim();
+  if (!goalId) return json({ error: "goal_id_required" }, 400);
+
+  const goal = await findGoal(db, goalId);
+  if (!goal) return json({ error: "goal_not_found" }, 404);
+
+  const startMode = payload.start_mode === "tomorrow" ? "tomorrow" : "today";
+  const clientToday = asDateOrNull(payload.client_today) || todayIso();
+  const startDate = startMode === "tomorrow" ? addDays(clientToday, 1) : clientToday;
+  const targetDate = asDateOrNull(payload.target_date) || asDateOrNull(goal.target_date);
+  const dailyBudget = clampInt(goal.daily_hours, 1, 16, 2) * 60;
+
+  const tasks = (await listTasks(db, goalId)).filter((task) => Number(task.completed) !== 1);
+
+  const rows = [db.prepare("DELETE FROM schedule_entries WHERE scope = ? AND goal_id = ?").bind(SHARED_SCOPE, goalId)];
+  const overflow = [];
+  const entries = [];
+
+  let day = startDate;
+  let dayRemaining = dailyBudget;
+  let orderIndex = 1;
+
+  for (const task of tasks) {
+    let remaining = clampInt(task.estimate_min, 5, 6000, 60);
+
+    while (remaining > 0) {
+      if (targetDate && day > targetDate) {
+        overflow.push({
+          task_id: task.id,
+          title: task.title,
+          remaining_min: remaining,
+        });
+        break;
+      }
+
+      if (dayRemaining <= 0) {
+        day = addDays(day, 1);
+        dayRemaining = dailyBudget;
+        continue;
+      }
+
+      const minutes = Math.min(remaining, dayRemaining);
+      const entry = {
+        id: crypto.randomUUID(),
+        goal_id: goalId,
+        task_id: task.id,
+        date: day,
+        minutes_allocated: minutes,
+        order_index: orderIndex,
+        created_at: nowIso(),
+      };
+
+      entries.push(entry);
+      rows.push(
+        db
+          .prepare(
+            `INSERT INTO schedule_entries (id, scope, goal_id, task_id, date, minutes_allocated, order_index, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(
+            entry.id,
+            SHARED_SCOPE,
+            entry.goal_id,
+            entry.task_id,
+            entry.date,
+            entry.minutes_allocated,
+            entry.order_index,
+            entry.created_at
+          )
+      );
+
+      remaining -= minutes;
+      dayRemaining -= minutes;
+      orderIndex += 1;
+
+      if (dayRemaining <= 0) {
+        day = addDays(day, 1);
+        dayRemaining = dailyBudget;
+      }
     }
-  );
-}
-
-function listBlocksByDate(userId, date) {
-  return [...mem.blocks.values()]
-    .filter((b) => b.user_id === userId && b.date === date)
-    .sort((a, b) => a.start_at.localeCompare(b.start_at));
-}
-
-function replaceAutoBlocks(userId, date, blocks) {
-  for (const [key, row] of mem.blocks.entries()) {
-    if (row.user_id === userId && row.date === date && !row.locked && !row.completed) mem.blocks.delete(key);
   }
-  const createdAt = nowIso();
-  for (const block of blocks) {
-    const row = { id: id(), user_id: userId, ...block, created_at: createdAt, updated_at: createdAt };
-    mem.blocks.set(row.id, row);
-  }
-  return listBlocksByDate(userId, date);
-}
 
-function generateSchedule(userId, date, keepFixed) {
-  const targetDate = date || todayIso();
-  const tasks = userData(userId).tasks.filter((t) => !t.completed && (!t.deferred_until || t.deferred_until <= targetDate));
-  const prefs = getPrefs(userId);
-  const blocks = listBlocksByDate(userId, targetDate);
-  const fixed = keepFixed ? blocks.filter((b) => b.locked || b.completed) : [];
-  const planned = buildSchedule({
-    dateIso: targetDate,
-    tasks,
-    fixedBlocks: fixed,
-    preferences: prefs,
-    source: keepFixed ? "reflow" : "generate",
+  await db.batch(rows);
+
+  return json({
+    goal_id: goalId,
+    start_date: startDate,
+    target_date: targetDate || null,
+    items: await listScheduleForGoal(db, goalId),
+    overflow,
   });
-  const merged = keepFixed
-    ? [
-        ...fixed.map((b) => ({
-          task_id: b.task_id || null,
-          title: b.title,
-          date: b.date,
-          start_at: b.start_at,
-          end_at: b.end_at,
-          locked: b.locked ? 1 : 0,
-          completed: b.completed ? 1 : 0,
-          source: b.source || "fixed",
-          score: Number(b.score || 0),
-        })),
-        ...planned.blocks,
-      ]
-    : planned.blocks;
-  return { date: targetDate, blocks: replaceAutoBlocks(userId, targetDate, merged), deferred: planned.deferred || [] };
+}
+
+async function handleApi(request, url, env) {
+  const method = request.method.toUpperCase();
+  const path = url.pathname;
+
+  const dbErr = assertDb(env);
+  if (dbErr) return dbErr;
+
+  if (path === "/api/health" && method === "GET") {
+    return json({ ok: true, mode: "d1-shared", db: true, write_key: Boolean(env.WRITE_API_KEY) });
+  }
+
+  const writeErr = assertWriteKey(request, env);
+  if (writeErr) return writeErr;
+
+  const db = env.DB;
+
+  if (path === "/api/goals") {
+    if (method === "GET") {
+      return json({ items: await listGoals(db) });
+    }
+
+    if (method === "POST") {
+      const body = await readBody(request);
+      const title = String(body.title || "").trim();
+      if (!title) return json({ error: "title_required" }, 400);
+
+      const row = {
+        id: crypto.randomUUID(),
+        title,
+        target_date: asDateOrNull(body.target_date),
+        daily_hours: clampInt(body.daily_hours, 1, 16, 2),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+
+      await db
+        .prepare(
+          `INSERT INTO shared_goals (id, scope, title, target_date, daily_hours, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(row.id, SHARED_SCOPE, row.title, row.target_date, row.daily_hours, row.created_at, row.updated_at)
+        .run();
+
+      return json({ item: row });
+    }
+
+    if (method === "PATCH") {
+      const body = await readBody(request);
+      const id = String(body.id || "").trim();
+      if (!id) return json({ error: "id_required" }, 400);
+
+      const prev = await findGoal(db, id);
+      if (!prev) return json({ error: "goal_not_found" }, 404);
+
+      const next = {
+        ...prev,
+        title: body.title !== undefined ? String(body.title || "").trim() || prev.title : prev.title,
+        target_date: body.target_date !== undefined ? asDateOrNull(body.target_date) : prev.target_date,
+        daily_hours:
+          body.daily_hours !== undefined ? clampInt(body.daily_hours, 1, 16, prev.daily_hours || 2) : prev.daily_hours,
+        updated_at: nowIso(),
+      };
+
+      await db
+        .prepare(
+          `UPDATE shared_goals
+           SET title = ?, target_date = ?, daily_hours = ?, updated_at = ?
+           WHERE id = ? AND scope = ?`
+        )
+        .bind(next.title, next.target_date, next.daily_hours, next.updated_at, id, SHARED_SCOPE)
+        .run();
+
+      return json({ item: next });
+    }
+  }
+
+  if (path === "/api/tasks") {
+    if (method === "GET") {
+      const goalId = String(url.searchParams.get("goal_id") || "").trim() || null;
+      return json({ items: await listTasks(db, goalId) });
+    }
+
+    if (method === "POST") {
+      const body = await readBody(request);
+      const goalId = String(body.goal_id || "").trim();
+      const title = String(body.title || "").trim();
+      if (!goalId) return json({ error: "goal_id_required" }, 400);
+      if (!title) return json({ error: "title_required" }, 400);
+
+      const goal = await findGoal(db, goalId);
+      if (!goal) return json({ error: "goal_not_found" }, 404);
+
+      const row = {
+        id: crypto.randomUUID(),
+        goal_id: goalId,
+        title,
+        priority_rank: clampInt(body.priority_rank, 1, 999, 999),
+        estimate_min: clampInt(body.estimate_min, 5, 6000, 60),
+        completed: body.completed ? 1 : 0,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+
+      await db
+        .prepare(
+          `INSERT INTO shared_tasks (id, scope, goal_id, title, priority_rank, estimate_min, completed, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          row.id,
+          SHARED_SCOPE,
+          row.goal_id,
+          row.title,
+          row.priority_rank,
+          row.estimate_min,
+          row.completed,
+          row.created_at,
+          row.updated_at
+        )
+        .run();
+
+      return json({ item: row });
+    }
+
+    if (method === "PATCH") {
+      const body = await readBody(request);
+      const id = String(body.id || "").trim();
+      if (!id) return json({ error: "id_required" }, 400);
+
+      const prev = await findTask(db, id);
+      if (!prev) return json({ error: "task_not_found" }, 404);
+
+      const next = {
+        ...prev,
+        title: body.title !== undefined ? String(body.title || "").trim() || prev.title : prev.title,
+        priority_rank:
+          body.priority_rank !== undefined
+            ? clampInt(body.priority_rank, 1, 999, prev.priority_rank || 1)
+            : prev.priority_rank,
+        estimate_min:
+          body.estimate_min !== undefined ? clampInt(body.estimate_min, 5, 6000, prev.estimate_min || 60) : prev.estimate_min,
+        completed: body.completed !== undefined ? (body.completed ? 1 : 0) : prev.completed,
+        updated_at: nowIso(),
+      };
+
+      await db
+        .prepare(
+          `UPDATE shared_tasks
+           SET title = ?, priority_rank = ?, estimate_min = ?, completed = ?, updated_at = ?
+           WHERE id = ? AND scope = ?`
+        )
+        .bind(next.title, next.priority_rank, next.estimate_min, next.completed, next.updated_at, id, SHARED_SCOPE)
+        .run();
+
+      return json({ item: next });
+    }
+  }
+
+  if (path === "/api/schedule/spread" && method === "POST") {
+    const body = await readBody(request);
+    return spreadGoal(db, body);
+  }
+
+  if (path === "/api/schedule/goal" && method === "GET") {
+    const goalId = String(url.searchParams.get("goal_id") || "").trim();
+    if (!goalId) return json({ items: [] });
+    return json({ items: await listScheduleForGoal(db, goalId) });
+  }
+
+  return json({ error: "not_found" }, 404);
 }
 
 async function fetchAsset(request, env, overridePath) {
@@ -151,220 +417,10 @@ async function fetchAsset(request, env, overridePath) {
   return env.ASSETS.fetch(new Request(url.toString(), request));
 }
 
-async function handleApi(request, url) {
-  const path = url.pathname;
-  const method = request.method.toUpperCase();
-
-  if (path === "/api/health" && method === "GET") return json({ ok: true, mode: "memory" });
-
-  if (path === "/api/auth/request-otp" && method === "POST") {
-    const body = await readBody(request);
-    const email = String(body.email || "").trim().toLowerCase();
-    if (!emailOk(email)) return json({ error: "invalid_email" }, 400);
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    mem.otp.set(email, { otp, expiresAt: Date.now() + OTP_TTL_MS });
-    return json({ ok: true, expires_in_sec: 600, dev_otp: otp });
-  }
-
-  if (path === "/api/auth/verify-otp" && method === "POST") {
-    const body = await readBody(request);
-    const email = String(body.email || "").trim().toLowerCase();
-    const otp = String(body.otp || "").trim();
-    const entry = mem.otp.get(email);
-    if (!entry || Date.now() > entry.expiresAt || entry.otp !== otp) return json({ error: "invalid_otp" }, 401);
-    mem.otp.delete(email);
-
-    let user = mem.usersByEmail.get(email);
-    if (!user) {
-      user = { id: id(), email, created_at: nowIso() };
-      mem.usersByEmail.set(email, user);
-      mem.users.set(user.id, user);
-    }
-
-    const token = crypto.randomUUID().replace(/-/g, "");
-    mem.sessions.set(token, { user: { user_id: user.id, email: user.email }, expiresAt: Date.now() + SESSION_TTL_MS });
-    return json({ token, user });
-  }
-
-  if (path === "/api/auth/logout" && method === "POST") {
-    const token = bearer(request);
-    if (token) mem.sessions.delete(token);
-    return json({ ok: true });
-  }
-
-  const user = sessionUser(request);
-  if (!user) return json({ error: "unauthorized" }, 401);
-  const userId = user.user_id;
-
-  if (path === "/api/goals") {
-    if (method === "GET") return json({ items: userData(userId).goals });
-    if (method === "POST") {
-      const body = await readBody(request);
-      const row = {
-        id: id(),
-        user_id: userId,
-        title: String(body.title || "").trim() || "Untitled Goal",
-        description: body.description || null,
-        target_date: body.target_date || null,
-        status: body.status || "active",
-        priority: Number(body.priority || 3),
-        created_at: nowIso(),
-        updated_at: nowIso(),
-      };
-      mem.goals.set(row.id, row);
-      return json({ item: row });
-    }
-    if (method === "PATCH") {
-      const body = await readBody(request);
-      const row = mem.goals.get(String(body.id || ""));
-      if (!row || row.user_id !== userId) return json({ item: null });
-      Object.assign(row, {
-        title: body.title ?? row.title,
-        description: body.description ?? row.description,
-        target_date: body.target_date ?? row.target_date,
-        status: body.status ?? row.status,
-        priority: body.priority ?? row.priority,
-        updated_at: nowIso(),
-      });
-      return json({ item: row });
-    }
-  }
-
-  if (path === "/api/milestones") {
-    if (method === "GET") return json({ items: userData(userId).milestones });
-    if (method === "POST") {
-      const body = await readBody(request);
-      const row = {
-        id: id(),
-        user_id: userId,
-        goal_id: body.goal_id || null,
-        title: String(body.title || "").trim() || "Untitled Milestone",
-        due_date: body.due_date || null,
-        status: body.status || "active",
-        weight: Number(body.weight || 1),
-        created_at: nowIso(),
-        updated_at: nowIso(),
-      };
-      mem.milestones.set(row.id, row);
-      return json({ item: row });
-    }
-    if (method === "PATCH") {
-      const body = await readBody(request);
-      const row = mem.milestones.get(String(body.id || ""));
-      if (!row || row.user_id !== userId) return json({ item: null });
-      Object.assign(row, {
-        goal_id: body.goal_id ?? row.goal_id,
-        title: body.title ?? row.title,
-        due_date: body.due_date ?? row.due_date,
-        status: body.status ?? row.status,
-        weight: body.weight ?? row.weight,
-        updated_at: nowIso(),
-      });
-      return json({ item: row });
-    }
-  }
-
-  if (path === "/api/tasks") {
-    if (method === "GET") return json({ items: userData(userId).tasks });
-    if (method === "POST") {
-      const body = await readBody(request);
-      const row = {
-        id: id(),
-        user_id: userId,
-        goal_id: body.goal_id || null,
-        milestone_id: body.milestone_id || null,
-        title: String(body.title || "").trim() || "Untitled Task",
-        description: body.description || null,
-        duration_min: Number(body.duration_min || 30),
-        priority: Number(body.priority || 3),
-        deadline: body.deadline || null,
-        category: body.category || null,
-        energy: body.energy || "medium",
-        depends_on: body.depends_on || null,
-        locked: body.locked ? 1 : 0,
-        completed: body.completed ? 1 : 0,
-        deferred_until: body.deferred_until || null,
-        created_at: nowIso(),
-        updated_at: nowIso(),
-      };
-      mem.tasks.set(row.id, row);
-      return json({ item: row });
-    }
-    if (method === "PATCH") {
-      const body = await readBody(request);
-      const row = mem.tasks.get(String(body.id || ""));
-      if (!row || row.user_id !== userId) return json({ item: null });
-      Object.assign(row, { ...body, updated_at: nowIso() });
-      return json({ item: row });
-    }
-  }
-
-  if (path === "/api/preferences") {
-    if (method === "GET") return json({ item: getPrefs(userId) });
-    if (method === "PATCH") {
-      const body = await readBody(request);
-      const current = getPrefs(userId);
-      const next = {
-        ...current,
-        timezone: body.timezone ?? current.timezone,
-        work_start: body.work_start ?? current.work_start,
-        work_end: body.work_end ?? current.work_end,
-        break_min: Number.isFinite(body.break_min) ? body.break_min : current.break_min,
-        buffer_min: Number.isFinite(body.buffer_min) ? body.buffer_min : current.buffer_min,
-        updated_at: nowIso(),
-      };
-      mem.prefs.set(userId, next);
-      return json({ item: next });
-    }
-  }
-
-  if (path === "/api/schedule/generate" && method === "POST") {
-    const body = await readBody(request);
-    return json(generateSchedule(userId, body.date, false));
-  }
-
-  if (path === "/api/schedule/reflow" && method === "POST") {
-    const body = await readBody(request);
-    return json(generateSchedule(userId, body.date, true));
-  }
-
-  if (path === "/api/schedule/day" && method === "GET") {
-    const date = url.searchParams.get("date") || todayIso();
-    return json({ date, blocks: listBlocksByDate(userId, date) });
-  }
-
-  const lockMatch = path.match(/^\/api\/blocks\/([^/]+)\/lock$/);
-  if (lockMatch && method === "PATCH") {
-    const body = await readBody(request);
-    const row = mem.blocks.get(lockMatch[1]);
-    if (!row || row.user_id !== userId) return json({ item: null });
-    row.locked = body.locked ? 1 : 0;
-    row.updated_at = nowIso();
-    return json({ item: row });
-  }
-
-  const completeMatch = path.match(/^\/api\/blocks\/([^/]+)\/complete$/);
-  if (completeMatch && method === "PATCH") {
-    const body = await readBody(request);
-    const row = mem.blocks.get(completeMatch[1]);
-    if (!row || row.user_id !== userId) return json({ item: null });
-    row.completed = body.completed ? 1 : 0;
-    row.updated_at = nowIso();
-    if (row.completed && row.task_id && mem.tasks.has(row.task_id)) {
-      const task = mem.tasks.get(row.task_id);
-      task.completed = 1;
-      task.updated_at = nowIso();
-    }
-    return json({ item: row });
-  }
-
-  return json({ error: "not_found" }, 404);
-}
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, url);
+    if (url.pathname.startsWith("/api/")) return handleApi(request, url, env);
     if (url.pathname === "/scheduler" || url.pathname === "/scheduler/") {
       return fetchAsset(request, env, "/scheduler.html");
     }

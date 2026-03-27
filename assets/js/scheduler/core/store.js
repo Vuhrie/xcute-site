@@ -1,13 +1,11 @@
-const state = {
-  token: localStorage.getItem("xcute_token") || "",
-  user: null,
+﻿const state = {
   date: new Date().toISOString().slice(0, 10),
+  selectedGoalId: "",
   goals: [],
-  milestones: [],
   tasks: [],
-  blocks: [],
-  deferred: [],
-  preferences: null,
+  schedule: [],
+  overflow: [],
+  writeKey: localStorage.getItem("xcute_write_key") || "",
 };
 
 const listeners = new Set();
@@ -26,9 +24,9 @@ export function subscribe(listener) {
   return () => listeners.delete(listener);
 }
 
-export function setToken(token) {
-  if (token) localStorage.setItem("xcute_token", token);
-  else localStorage.removeItem("xcute_token");
-  setState({ token: token || "" });
+export function setWriteKey(value) {
+  const key = String(value || "").trim();
+  if (key) localStorage.setItem("xcute_write_key", key);
+  else localStorage.removeItem("xcute_write_key");
+  setState({ writeKey: key });
 }
-

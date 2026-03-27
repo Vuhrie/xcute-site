@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,29 +20,26 @@
   <body>
     <div class="bg-orb bg-orb--left" aria-hidden="true"></div>
     <div class="bg-orb bg-orb--right" aria-hidden="true"></div>
+
     <main class="l-page l-scheduler-page">
       <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title">
         <a href="/" class="c-kicker">Back To Hub</a>
-        <p class="c-version-badge" id="scheduler-version">Version v0.2.0</p>
-        <h1 id="scheduler-title" class="c-hero__title">Smart Scheduler</h1>
+        <p class="c-version-badge" id="scheduler-version">Version v0.3.0</p>
+        <h1 id="scheduler-title" class="c-hero__title">Goal Scheduler</h1>
         <p class="c-hero__subtitle">
-          Goal-focused daily planning with deterministic scoring, smart deferral, and auto reflow.
+          Pick a goal, add prioritized tasks, then auto-spread work by your daily hours.
         </p>
-      </section>
-
-      <section class="c-section" aria-labelledby="auth-title">
-        <h2 id="auth-title" class="c-section__title">Account</h2>
-        <auth-panel></auth-panel>
       </section>
 
       <section class="c-section c-scheduler-grid" aria-labelledby="planner-title">
         <h2 id="planner-title" class="c-section__title">Planner</h2>
-        <settings-panel></settings-panel>
-        <goal-board></goal-board>
-        <task-composer></task-composer>
-        <timeline-view></timeline-view>
-        <conflict-panel></conflict-panel>
+        <write-key-panel></write-key-panel>
+        <goal-panel></goal-panel>
+        <task-panel></task-panel>
+        <spread-panel></spread-panel>
+        <plan-view></plan-view>
       </section>
     </main>
   </body>
 </html>
+
