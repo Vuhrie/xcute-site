@@ -43,8 +43,3 @@
   --motion-intensity: 1;
   --motion-stagger: 1;
 }
-
-html[data-motion-mode="off"] {
-  --motion-intensity: 0.4;
-  --motion-stagger: 0.25;
-}

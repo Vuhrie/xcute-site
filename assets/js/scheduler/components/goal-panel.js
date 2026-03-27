@@ -1,7 +1,7 @@
 import { createGoal, deleteGoal as removeGoal, refreshGoalData, selectGoal, updateGoal } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
-import { getState, subscribe } from "../core/store.js";
+import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -73,6 +73,24 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
   </article>`;
 }
 
+function goalsSig(goals) {
+  if (!Array.isArray(goals) || !goals.length) return "none";
+  return goals.map((goal) => `${goal.id || ""}:${goal.title || ""}:${goal.daily_hours || 0}:${goal.target_date || ""}`).join("|");
+}
+
+function selectGoalsSlice(state) {
+  return {
+    goals: state.goals || [],
+    selectedGoalId: state.selectedGoalId || "",
+    sig: goalsSig(state.goals),
+  };
+}
+
+function sameGoalsSlice(a, b) {
+  if (!a || !b) return false;
+  return a.selectedGoalId === b.selectedGoalId && a.sig === b.sig;
+}
+
 export class GoalPanel extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
@@ -80,9 +98,17 @@ export class GoalPanel extends HTMLElement {
     this.goalList = this.querySelector('[data-role="goals"]');
     animatePanel(this.querySelector(".x-panel"));
     this.editingGoalId = "";
+    this.slice = selectGoalsSlice(getState());
     this.addEventListener("click", (event) => this.onClick(event));
-    this.unsubscribe = subscribe(() => this.render());
-    this.render();
+    this.unsubscribe = subscribeSelector(
+      selectGoalsSlice,
+      (nextSlice) => {
+        this.slice = nextSlice;
+        this.render(nextSlice);
+      },
+      sameGoalsSlice
+    );
+    this.render(this.slice);
   }
 
   disconnectedCallback() {
@@ -177,8 +203,9 @@ export class GoalPanel extends HTMLElement {
     }
   }
 
-  render() {
-    const { goals, selectedGoalId } = getState();
+  render(slice = this.slice || selectGoalsSlice(getState())) {
+    const goals = slice.goals || [];
+    const selectedGoalId = slice.selectedGoalId || "";
     if (!goals.some((goal) => goal.id === this.editingGoalId)) {
       this.editingGoalId = "";
     }

@@ -1,5 +1,5 @@
-import { getState, subscribe } from "../core/store.js";
 import { animatePanel, animateRows } from "../core/motion.js";
+import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -38,23 +38,64 @@ function byDateThenOrder(a, b) {
   return String(a.entry_id || "").localeCompare(String(b.entry_id || ""));
 }
 
+function goalsSig(goals) {
+  if (!Array.isArray(goals) || !goals.length) return "none";
+  return goals
+    .map((goal) => `${goal.id || ""}:${goal.title || ""}:${goal.target_date || ""}:${goal.total_min || 0}:${goal.completed_min || 0}`)
+    .join("|");
+}
+
+function timelineSig(items) {
+  if (!Array.isArray(items) || !items.length) return "none";
+  return items
+    .map(
+      (item) =>
+        `${item.entry_id || ""}:${item.date || ""}:${item.order_index || 0}:${item.goal_title || ""}:${item.title || ""}:${
+          item.minutes_allocated || 0
+        }:${item.entry_done ? 1 : 0}`
+    )
+    .join("|");
+}
+
+function selectTimelineSlice(state) {
+  return {
+    timelineGoals: state.timelineGoals || [],
+    timelineItems: state.timelineItems || [],
+    goalsSig: goalsSig(state.timelineGoals),
+    itemsSig: timelineSig(state.timelineItems),
+  };
+}
+
+function sameTimelineSlice(a, b) {
+  if (!a || !b) return false;
+  return a.goalsSig === b.goalsSig && a.itemsSig === b.itemsSig;
+}
+
 export class PlanView extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
     this.badgesNode = this.querySelector('[data-role="goal-badges"]');
     this.timelineNode = this.querySelector('[data-role="timeline"]');
     animatePanel(this.querySelector(".x-panel"));
-    this.unsubscribe = subscribe(() => this.render());
-    this.render();
+    this.slice = selectTimelineSlice(getState());
+    this.unsubscribe = subscribeSelector(
+      selectTimelineSlice,
+      (nextSlice) => {
+        this.slice = nextSlice;
+        this.render(nextSlice);
+      },
+      sameTimelineSlice
+    );
+    this.render(this.slice);
   }
 
   disconnectedCallback() {
     this.unsubscribe?.();
   }
 
-  render() {
-    const goals = getState().timelineGoals || [];
-    const items = [...(getState().timelineItems || [])].sort(byDateThenOrder);
+  render(slice = this.slice || selectTimelineSlice(getState())) {
+    const goals = slice.timelineGoals || [];
+    const items = [...(slice.timelineItems || [])].sort(byDateThenOrder);
 
     if (!goals.length) {
       this.badgesNode.innerHTML = `<article class="x-item x-small">No scheduled goals yet.</article>`;

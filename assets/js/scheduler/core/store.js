@@ -22,13 +22,36 @@ export function getState() {
 }
 
 export function setState(patch) {
-  Object.assign(state, patch);
+  const keys = Object.keys(patch || {});
+  let changed = false;
+  for (const key of keys) {
+    const nextValue = patch[key];
+    if (Object.is(state[key], nextValue)) continue;
+    state[key] = nextValue;
+    changed = true;
+  }
+  if (!changed) return false;
   for (const listener of listeners) listener(state);
+  return true;
 }
 
 export function subscribe(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+export function subscribeSelector(selector, listener, isEqual = Object.is) {
+  if (typeof selector !== "function" || typeof listener !== "function") {
+    return () => {};
+  }
+  let prev = selector(state);
+  return subscribe((nextState) => {
+    const next = selector(nextState);
+    if (isEqual(prev, next)) return;
+    const old = prev;
+    prev = next;
+    listener(next, old, nextState);
+  });
 }
 
 export function setWriteKey(value) {

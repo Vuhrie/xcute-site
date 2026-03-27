@@ -1,7 +1,6 @@
 import { bootstrapScheduler, refreshGoalData, refreshTimeline, refreshTodayQueue } from "./core/actions.js";
 import { initAmbientSpace } from "../modules/ambient.js";
 import { initMotionPreference } from "../modules/motion-pref.js";
-import { initMotionToggle } from "../modules/motion-toggle.js";
 import { initReveal } from "../modules/reveal.js";
 import { initRouteTransitions } from "../modules/route-transition.js";
 import { initTiltMotion } from "../modules/tilt.js";
@@ -17,7 +16,6 @@ const TIMELINE_POLL_MS = 15000;
 const motion = initMotionPreference();
 const reveal = initReveal({ reducedMotion: motion.isReducedMotion });
 const ambient = initAmbientSpace();
-initMotionToggle({ motion });
 initRouteTransitions();
 const tilt = initTiltMotion();
 ambient.setReducedMotion(motion.isReducedMotion);
@@ -30,7 +28,7 @@ function safeRun(task) {
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.5.0";
+  node.textContent = "Version v0.5.1";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
     if (VERSION_RE.test(text)) node.textContent = `Version ${text}`;

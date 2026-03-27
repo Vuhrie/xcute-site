@@ -77,6 +77,23 @@
   }
 }
 
+@keyframes btn-wave-rtl {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  88% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(-1400%, 0, 0);
+    opacity: 0;
+  }
+}
+
 [data-animate] {
   opacity: 0;
   transform: translate3d(0, 24px, 0);
@@ -110,11 +127,6 @@
   animation: badge-float 2.6s ease-in-out infinite;
 }
 
-.c-btn:not(:disabled) {
-  background-size: 220% 100%;
-  animation: sheen-shift 6s linear infinite;
-}
-
 .x-panel,
 .c-card,
 .c-hero,
@@ -124,14 +136,6 @@
     box-shadow var(--dur-mid) var(--ease-out),
     border-color var(--dur-fast) linear,
     opacity var(--dur-fast) linear;
-}
-
-html[data-motion-mode="off"] .c-btn:not(:disabled),
-html[data-motion-mode="off"] .c-version-badge.is-live,
-html[data-motion-mode="off"] body::before,
-html[data-motion-mode="off"] body::after {
-  animation-duration: 1ms !important;
-  animation-iteration-count: 1 !important;
 }
 
 html[data-reduced-motion="true"] *,

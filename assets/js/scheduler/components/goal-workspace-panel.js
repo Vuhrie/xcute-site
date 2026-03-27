@@ -1,7 +1,7 @@
 import { createTask, deleteTask as removeTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
-import { getState, subscribe } from "../core/store.js";
+import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -69,6 +69,36 @@ function taskRow(task, index, total) {
   </article>`;
 }
 
+function tasksSig(tasks) {
+  if (!Array.isArray(tasks) || !tasks.length) return "none";
+  return tasks
+    .map((task) => `${task.id || ""}:${task.priority_rank || 0}:${task.title || ""}:${task.estimate_min || 0}:${task.completed ? 1 : 0}`)
+    .join("|");
+}
+
+function selectedGoalSig(state) {
+  const selectedGoalId = state.selectedGoalId || "";
+  if (!selectedGoalId) return "none";
+  const goal = (state.goals || []).find((item) => item.id === selectedGoalId);
+  if (!goal) return "none";
+  return `${goal.id || ""}:${goal.title || ""}:${goal.daily_hours || 0}:${goal.target_date || ""}`;
+}
+
+function selectWorkspaceSlice(state) {
+  return {
+    selectedGoalId: state.selectedGoalId || "",
+    goalSig: selectedGoalSig(state),
+    tasksSig: tasksSig(state.tasks),
+    goals: state.goals || [],
+    tasks: state.tasks || [],
+  };
+}
+
+function sameWorkspaceSlice(a, b) {
+  if (!a || !b) return false;
+  return a.selectedGoalId === b.selectedGoalId && a.goalSig === b.goalSig && a.tasksSig === b.tasksSig;
+}
+
 export class GoalWorkspacePanel extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
@@ -78,9 +108,17 @@ export class GoalWorkspacePanel extends HTMLElement {
     this.captionNode = this.querySelector('[data-role="goal-caption"]');
     this.headerNode = this.querySelector('[data-role="goal-header"]');
     animatePanel(this.rootNode);
+    this.slice = selectWorkspaceSlice(getState());
     this.addEventListener("click", (event) => this.onClick(event));
-    this.unsubscribe = subscribe(() => this.render());
-    this.render();
+    this.unsubscribe = subscribeSelector(
+      selectWorkspaceSlice,
+      (nextSlice) => {
+        this.slice = nextSlice;
+        this.render(nextSlice);
+      },
+      sameWorkspaceSlice
+    );
+    this.render(this.slice);
   }
 
   disconnectedCallback() {
@@ -88,8 +126,8 @@ export class GoalWorkspacePanel extends HTMLElement {
   }
 
   currentGoal() {
-    const { selectedGoalId, goals } = getState();
-    return goals.find((goal) => goal.id === selectedGoalId) || null;
+    const selectedGoalId = this.slice?.selectedGoalId || "";
+    return (this.slice?.goals || []).find((goal) => goal.id === selectedGoalId) || null;
   }
 
   setStatus(message) {
@@ -97,7 +135,7 @@ export class GoalWorkspacePanel extends HTMLElement {
   }
 
   taskById(id) {
-    return (getState().tasks || []).find((task) => task.id === id) || null;
+    return (this.slice?.tasks || []).find((task) => task.id === id) || null;
   }
 
   async onClick(event) {
@@ -119,7 +157,7 @@ export class GoalWorkspacePanel extends HTMLElement {
           goal_id: goal.id,
           title,
           estimate_min: Number.parseInt(this.querySelector('[name="estimate_min"]').value, 10) || 60,
-          priority_rank: (getState().tasks?.length || 0) + 1,
+          priority_rank: (this.slice?.tasks?.length || 0) + 1,
         });
         this.querySelector('[name="title"]').value = "";
         this.setStatus("Task added.");
@@ -166,9 +204,9 @@ export class GoalWorkspacePanel extends HTMLElement {
     }
   }
 
-  render() {
-    const goal = this.currentGoal();
-    const tasks = getState().tasks || [];
+  render(slice = this.slice || selectWorkspaceSlice(getState())) {
+    const goal = (slice.goals || []).find((item) => item.id === slice.selectedGoalId) || null;
+    const tasks = slice.tasks || [];
 
     this.rootNode.classList.toggle("is-open", Boolean(goal));
 

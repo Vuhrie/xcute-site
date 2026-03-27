@@ -1,7 +1,7 @@
 import { queueAckBreak, queueComplete, queuePause, queueSkip, queueStart, refreshTodayQueue } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
-import { getState, subscribe } from "../core/store.js";
+import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -57,6 +57,38 @@ function queueRow(item, activeEntryId, mode, running) {
   </article>`;
 }
 
+function queueItemsSig(items) {
+  if (!Array.isArray(items) || !items.length) return "none";
+  return items
+    .map(
+      (item) =>
+        `${item.entry_id || ""}:${item.order_index || 0}:${item.status || ""}:${item.title || ""}:${item.minutes_allocated || 0}`
+    )
+    .join("|");
+}
+
+function queueSessionSig(session) {
+  if (!session) return "none";
+  return `${session.mode || "task"}:${session.active_entry_id || ""}:${Number.parseInt(session.running, 10) || 0}:${
+    session.state_version || 0
+  }`;
+}
+
+function selectQueueSlice(state) {
+  return {
+    queueDate: state.queueDate || "",
+    queueItems: state.queueItems || [],
+    queueSession: state.queueSession || null,
+    itemsSig: queueItemsSig(state.queueItems),
+    sessionSig: queueSessionSig(state.queueSession),
+  };
+}
+
+function sameQueueSlice(a, b) {
+  if (!a || !b) return false;
+  return a.queueDate === b.queueDate && a.itemsSig === b.itemsSig && a.sessionSig === b.sessionSig;
+}
+
 export class TodayQueuePanel extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
@@ -72,9 +104,19 @@ export class TodayQueuePanel extends HTMLElement {
     this.nowNode = this.querySelector('[data-role="now"]');
     animatePanel(this.querySelector(".x-panel"));
     this.localClock = null;
+    this.slice = selectQueueSlice(getState());
+    this.lastQueueSig = "";
+    this.lastSessionSig = "";
     this.addEventListener("click", (event) => this.onClick(event));
-    this.unsubscribe = subscribe(() => this.render());
-    this.render();
+    this.unsubscribe = subscribeSelector(
+      selectQueueSlice,
+      (nextSlice) => {
+        this.slice = nextSlice;
+        this.render(nextSlice);
+      },
+      sameQueueSlice
+    );
+    this.render(this.slice);
     this.tick = setInterval(() => this.renderNowOnly(), 250);
     this.sync = setInterval(() => refreshTodayQueue().catch(() => {}), 8000);
   }
@@ -129,7 +171,7 @@ export class TodayQueuePanel extends HTMLElement {
     if (!action) return;
     event.preventDefault();
 
-    const session = getState().queueSession || null;
+    const session = this.slice?.queueSession || null;
 
     try {
       if (action === "start") {
@@ -189,8 +231,8 @@ export class TodayQueuePanel extends HTMLElement {
   }
 
   renderNowOnly() {
-    const { queueItems, queueSession } = getState();
-    const session = queueSession || null;
+    const queueItems = this.slice?.queueItems || [];
+    const session = this.slice?.queueSession || null;
     const activeTask = queueItems.find((item) => item.entry_id === session?.active_entry_id) || null;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
@@ -241,18 +283,28 @@ export class TodayQueuePanel extends HTMLElement {
     }
   }
 
-  render() {
-    const { queueDate, queueItems, queueSession } = getState();
-    this.dateNode.textContent = queueDate || "";
+  render(slice = this.slice || selectQueueSlice(getState())) {
+    this.dateNode.textContent = slice.queueDate || "";
 
-    if (!queueItems.length) {
-      this.queueNode.innerHTML = `<article class="x-item x-small">No tasks planned for today yet.</article>`;
-    } else {
-      this.queueNode.innerHTML = queueItems
-        .map((item) => queueRow(item, queueSession?.active_entry_id, queueSession?.mode, Number.parseInt(queueSession?.running, 10) === 1))
-        .join("");
+    if (this.lastQueueSig !== slice.itemsSig || this.lastSessionSig !== slice.sessionSig) {
+      if (!slice.queueItems.length) {
+        this.queueNode.innerHTML = `<article class="x-item x-small">No tasks planned for today yet.</article>`;
+      } else {
+        this.queueNode.innerHTML = slice.queueItems
+          .map((item) =>
+            queueRow(
+              item,
+              slice.queueSession?.active_entry_id,
+              slice.queueSession?.mode,
+              Number.parseInt(slice.queueSession?.running, 10) === 1
+            )
+          )
+          .join("");
+      }
+      animateRows(this.queueNode, ".x-queue-item", 34);
+      this.lastQueueSig = slice.itemsSig;
+      this.lastSessionSig = slice.sessionSig;
     }
-    animateRows(this.queueNode, ".x-queue-item", 34);
 
     this.renderNowOnly();
   }

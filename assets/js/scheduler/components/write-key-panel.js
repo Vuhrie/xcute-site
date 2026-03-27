@@ -1,5 +1,5 @@
-import { getState, setState, setWriteKey, subscribe } from "../core/store.js";
 import { animatePanel, animateStateBump } from "../core/motion.js";
+import { getState, setState, setWriteKey, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -15,6 +15,23 @@ template.innerHTML = `
   </section>
 `;
 
+function selectWriteSlice(state) {
+  return {
+    writeKey: state.writeKey || "",
+    writeKeyWarning: state.writeKeyWarning || "",
+    writeKeyServerReady: state.writeKeyServerReady,
+  };
+}
+
+function sameWriteSlice(a, b) {
+  if (!a || !b) return false;
+  return (
+    a.writeKey === b.writeKey &&
+    a.writeKeyWarning === b.writeKeyWarning &&
+    a.writeKeyServerReady === b.writeKeyServerReady
+  );
+}
+
 export class WriteKeyPanel extends HTMLElement {
   connectedCallback() {
     this.append(template.content.cloneNode(true));
@@ -22,9 +39,17 @@ export class WriteKeyPanel extends HTMLElement {
     this.status = this.querySelector('[data-role="status"]');
     this.panel = this.querySelector(".x-panel");
     animatePanel(this.panel);
+    this.slice = selectWriteSlice(getState());
     this.addEventListener("click", (event) => this.onClick(event));
-    this.unsubscribe = subscribe(() => this.render());
-    this.render();
+    this.unsubscribe = subscribeSelector(
+      selectWriteSlice,
+      (nextSlice) => {
+        this.slice = nextSlice;
+        this.render(nextSlice);
+      },
+      sameWriteSlice
+    );
+    this.render(this.slice);
   }
 
   disconnectedCallback() {
@@ -54,23 +79,22 @@ export class WriteKeyPanel extends HTMLElement {
     }
   }
 
-  render() {
-    const state = getState();
-    const hasKey = Boolean(state.writeKey);
+  render(slice = this.slice || selectWriteSlice(getState())) {
+    const hasKey = Boolean(slice.writeKey);
     if (!this.input.matches(":focus")) {
-      this.input.value = state.writeKey;
+      this.input.value = slice.writeKey;
     }
 
     const message =
-      state.writeKeyWarning ||
-      (state.writeKeyServerReady === false
+      slice.writeKeyWarning ||
+      (slice.writeKeyServerReady === false
         ? "Server secret WRITE_API_KEY is not configured yet."
         : hasKey
           ? "Write key is configured."
           : "No write key set yet.");
 
     this.status.textContent = message;
-    this.status.classList.toggle("x-status-warning", Boolean(state.writeKeyWarning || state.writeKeyServerReady === false));
+    this.status.classList.toggle("x-status-warning", Boolean(slice.writeKeyWarning || slice.writeKeyServerReady === false));
   }
 }
 

@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (() => {
-        try {
-          const mode = localStorage.getItem("xcute_motion_mode");
-          const osReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-          const on = mode ? mode === "on" : !osReduced;
-          document.documentElement.dataset.motionMode = on ? "on" : "off";
-          document.documentElement.dataset.reducedMotion = on ? "false" : "true";
-        } catch {}
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.documentElement.dataset.motionMode = "on";
+        document.documentElement.dataset.reducedMotion = reduced ? "true" : "false";
       })();
     </script>
     <title>XCute | Scheduler</title>
@@ -35,7 +31,7 @@
     <main class="l-page l-scheduler-page">
       <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title" data-animate="zoom-in" data-motion-role="hero" data-tilt>
         <a href="/" class="c-kicker" data-motion-role="chip">Back To Hub</a>
-        <p class="c-version-badge" id="scheduler-version" data-motion-role="chip">Version v0.5.0</p>
+        <p class="c-version-badge" id="scheduler-version" data-motion-role="chip">Version v0.5.1</p>
         <h1 id="scheduler-title" class="c-hero__title" data-motion-role="hero">Goal Scheduler</h1>
         <p class="c-hero__subtitle" data-motion-role="panel">Open the site and instantly see today's queue, then manage goal tasks in one workspace.</p>
       </section>

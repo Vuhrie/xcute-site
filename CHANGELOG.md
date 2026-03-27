@@ -2,6 +2,19 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.1 - 2026-03-28
+
+### Changed
+- Stabilized scheduler rendering with slice-based subscriptions and signature guards so queue/timeline/task panels no longer replay entry motion on unchanged poll updates.
+- Updated motion behavior to permanent default-on with OS reduced-motion fallback only, and removed user mode switching paths.
+- Replaced button sheen with a right-to-left vertical wavy sweep effect on primary purple buttons.
+- Bumped runtime labels and metadata to `v0.5.1`.
+
+### Fixed
+- Reduced visible UI popping/glitching caused by frequent full component re-renders during queue sync and timeline polling.
+
+Rollback: `backup/v0.5.1`
+
 ## v0.5.0 - 2026-03-28
 
 ### Added

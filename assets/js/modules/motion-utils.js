@@ -1,5 +1,5 @@
 function reducedByMode() {
-  return document.documentElement.dataset.motionMode !== "on";
+  return document.documentElement.dataset.reducedMotion === "true";
 }
 
 export function canAnimate() {

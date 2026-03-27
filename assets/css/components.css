@@ -61,6 +61,27 @@
   font-weight: 700;
   transition: transform var(--dur-fast), box-shadow var(--dur-fast), filter var(--dur-fast);
   will-change: transform;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.c-btn:not(.c-btn--muted):not(:disabled)::after {
+  content: "";
+  position: absolute;
+  top: -36%;
+  left: 100%;
+  width: 0.95rem;
+  height: 172%;
+  border-radius: 999px;
+  background:
+    radial-gradient(72% 36% at 50% 10%, rgba(222, 244, 255, 0.92) 0 58%, transparent 62%) 50% 0 / 100% 0.9rem repeat-y,
+    radial-gradient(72% 36% at 50% 85%, rgba(223, 149, 255, 0.7) 0 55%, transparent 60%) 50% 0.46rem / 100% 0.9rem repeat-y;
+  filter: drop-shadow(0 0 0.38rem rgba(204, 232, 255, 0.45));
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: btn-wave-rtl 3.4s linear infinite;
 }
 
 .c-btn:hover {
@@ -102,7 +123,11 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
-  display: grid;`r`n  gap: var(--space-3);`r`n  backdrop-filter: blur(2px);`r`n  position: relative;`r`n  overflow: hidden;
+  display: grid;
+  gap: var(--space-3);
+  backdrop-filter: blur(2px);
+  position: relative;
+  overflow: hidden;
 }
 
 .c-card:hover {
@@ -129,6 +154,11 @@
 
 .c-hero__space {
   white-space: pre;
+}
+
+html[data-reduced-motion="true"] .c-btn:not(.c-btn--muted):not(:disabled)::after {
+  animation: none;
+  opacity: 0;
 }
 
 @media (max-width: 56rem) {
