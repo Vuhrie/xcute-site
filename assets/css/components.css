@@ -61,27 +61,19 @@
   font-weight: 700;
   transition: transform var(--dur-fast), box-shadow var(--dur-fast), filter var(--dur-fast);
   will-change: transform;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
-.c-btn:not(.c-btn--muted):not(:disabled)::after {
-  content: "";
-  position: absolute;
-  top: -36%;
-  left: 100%;
-  width: 0.95rem;
-  height: 172%;
-  border-radius: 999px;
-  background:
-    radial-gradient(72% 36% at 50% 10%, rgba(222, 244, 255, 0.92) 0 58%, transparent 62%) 50% 0 / 100% 0.9rem repeat-y,
-    radial-gradient(72% 36% at 50% 85%, rgba(223, 149, 255, 0.7) 0 55%, transparent 60%) 50% 0.46rem / 100% 0.9rem repeat-y;
-  filter: drop-shadow(0 0 0.38rem rgba(204, 232, 255, 0.45));
-  opacity: 0;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  animation: btn-wave-rtl 3.4s linear infinite;
+.c-btn:not(.c-btn--muted):not(:disabled) {
+  background-image:
+    linear-gradient(120deg, var(--accent), var(--accent-strong)),
+    radial-gradient(68% 34% at 50% 10%, rgba(238, 249, 255, 0.95) 0 58%, transparent 62%),
+    radial-gradient(68% 34% at 50% 88%, rgba(237, 154, 255, 0.78) 0 56%, transparent 61%);
+  background-size: 100% 100%, 0.95rem 0.95rem, 0.95rem 0.95rem;
+  background-position: 0 0, 132% 0, 132% 0.42rem;
+  animation: btn-wave-track 3.2s linear infinite;
+  filter: drop-shadow(0 0 0.2rem rgba(199, 233, 255, 0.25));
 }
 
 .c-btn:hover {
@@ -156,9 +148,9 @@
   white-space: pre;
 }
 
-html[data-reduced-motion="true"] .c-btn:not(.c-btn--muted):not(:disabled)::after {
+html[data-reduced-motion="true"] .c-btn:not(.c-btn--muted):not(:disabled) {
   animation: none;
-  opacity: 0;
+  background-image: linear-gradient(120deg, var(--accent), var(--accent-strong));
 }
 
 @media (max-width: 56rem) {

@@ -2,6 +2,19 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.2 - 2026-03-28
+
+### Changed
+- Updated motion fallback policy to keep animations on by default regardless of OS preference, only reducing when core animation APIs are unavailable.
+- Strengthened primary button animation to a clearly visible right-to-left vertical wavy sweep.
+- Bumped runtime labels and metadata to `v0.5.2`.
+
+### Fixed
+- Restored missing/weak button wave visibility on purple action buttons (`Start`, `Complete`, `Save Key`, etc.).
+- Restored full-intensity animation behavior that had felt reduced in `v0.5.1`.
+
+Rollback: `backup/v0.5.2`
+
 ## v0.5.1 - 2026-03-28
 
 ### Changed
