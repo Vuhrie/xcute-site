@@ -1,0 +1,105 @@
+.c-hero {
+  padding: clamp(var(--space-10), 8vw, 6.5rem);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 243, 232, 0.68));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: var(--space-6);
+}
+
+.c-kicker {
+  color: var(--accent-strong);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+.c-hero__title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.1rem, 6.7vw, 4.6rem);
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  color: var(--text);
+}
+
+.c-hero__subtitle {
+  max-width: 50ch;
+  color: var(--text-soft);
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+}
+
+.c-btn {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.75rem 1.2rem;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  transition: transform var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-fast);
+}
+
+.c-btn:hover {
+  transform: translate3d(0, -2px, 0);
+  box-shadow: var(--shadow-pop);
+  background: var(--accent-strong);
+}
+
+.c-section {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.c-section__title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.7rem, 5vw, 2.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.c-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.c-card {
+  padding: var(--space-8);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.c-card__title {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+.c-card__body {
+  color: var(--text-soft);
+}
+
+.c-hero__char {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.85em, 0) rotate(2deg);
+  will-change: transform, opacity;
+}
+
+.c-hero__space {
+  white-space: pre;
+}
+
+@media (max-width: 56rem) {
+  .c-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .c-card {
+    padding: var(--space-6);
+  }
+}
