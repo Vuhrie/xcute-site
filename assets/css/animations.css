@@ -34,6 +34,17 @@
   }
 }
 
+@keyframes badge-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
 [data-animate] {
   opacity: 0;
   transform: translate3d(0, 24px, 0);
@@ -54,6 +65,10 @@
   animation-delay: calc((var(--char-index, 0) * 28ms) + 120ms);
 }
 
+.c-version-badge.is-live {
+  animation: badge-float 2.4s ease-in-out infinite;
+}
+
 html[data-reduced-motion="true"] *,
 html[data-reduced-motion="true"] *::before,
 html[data-reduced-motion="true"] *::after {
@@ -71,4 +86,8 @@ html[data-reduced-motion="true"] [data-animate] {
 html[data-reduced-motion="true"] .c-hero__char {
   opacity: 1;
   transform: none;
+}
+
+html[data-reduced-motion="true"] .c-version-badge.is-live {
+  animation: none !important;
 }

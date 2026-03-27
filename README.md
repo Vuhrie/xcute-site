@@ -2,11 +2,21 @@
 
 Static modular starter site for Cloudflare Pages.
 
+## Versioning and backup
+
+- Current version is tracked in `VERSION`.
+- Change history is tracked in `CHANGELOG.md`.
+- Release/backup process is documented in `RELEASE_WORKFLOW.md`.
+- Every release must create an immutable backup branch named `backup/vX.Y.Z`.
+
 ## Local structure
 
 ```text
 .
 |- index.html
+|- VERSION
+|- CHANGELOG.md
+|- RELEASE_WORKFLOW.md
 |- assets/
    |- css/
    |  |- tokens.css
@@ -19,6 +29,7 @@ Static modular starter site for Cloudflare Pages.
          |- motion-pref.js
          |- hero.js
          |- reveal.js
+         |- version.js
 ```
 
 ## Deploy to Cloudflare Pages
