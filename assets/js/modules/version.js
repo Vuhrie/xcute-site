@@ -1,4 +1,4 @@
-const FALLBACK_VERSION = "v0.1.0";
+const FALLBACK_VERSION = "v0.1.1";
 const VERSION_PATTERN = /^v\d+\.\d+\.\d+$/;
 
 async function loadVersionFromFile() {

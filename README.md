@@ -1,6 +1,6 @@
 # xcute-site
 
-Static modular starter site for Cloudflare Pages.
+Static modular starter site for Cloudflare Workers static asset deploys.
 
 ## Versioning and backup
 
@@ -17,6 +17,7 @@ Static modular starter site for Cloudflare Pages.
 |- VERSION
 |- CHANGELOG.md
 |- RELEASE_WORKFLOW.md
+|- wrangler.jsonc
 |- assets/
    |- css/
    |  |- tokens.css
@@ -32,14 +33,18 @@ Static modular starter site for Cloudflare Pages.
          |- version.js
 ```
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare Workers (Git)
 
-1. Create a GitHub repository and upload these files.
-2. In Cloudflare Pages, choose **Create project** -> **Connect to Git**.
-3. Select your repo and configure:
-   - Framework preset: `None`
+1. In Cloudflare, configure the project as **Workers deploy from Git**.
+2. Keep `wrangler.jsonc` in repo root with:
+   - `name: "xcute-site"`
+   - `compatibility_date: "2026-03-27"`
+   - `assets.directory: "./"`
+3. Use project settings:
    - Build command: *(leave empty)*
-   - Build output directory: `/`
-4. Deploy and open your URL, for example: `https://xcute-site.pages.dev`
+   - Deploy command: `npx wrangler versions upload`
+   - Root directory: `/`
+4. Deploy and open the production URL:
+   - `https://xcute-site.derpdiepie8523.workers.dev/`
 
 The homepage renders the exact text: `Helllo, I am XCute`.

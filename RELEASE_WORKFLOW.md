@@ -10,7 +10,8 @@ This project uses immutable backup branches plus semantic versioning.
   - backup branch snapshot,
   - version bump in `VERSION`,
   - changelog entry in `CHANGELOG.md`,
-  - deployed code update.
+  - deployed code update,
+  - valid Worker config in `wrangler.jsonc`.
 - Never force-push or rewrite any `backup/*` branch.
 
 ## Version bump policy
@@ -31,6 +32,7 @@ This project uses immutable backup branches plus semantic versioning.
    - `### Added/Changed/Fixed`
    - `Rollback: backup/vX.Y.Z`
 6. Commit and deploy to `main`.
+   - Deploy command: `npx wrangler versions upload`
 7. Verify site and version badge on production URL.
 
 ## Branch examples
