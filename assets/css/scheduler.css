@@ -97,12 +97,6 @@ plan-view {
   border-radius: var(--radius-sm);
   background: var(--surface-soft);
   padding: var(--space-3);
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-}
-
-.x-item:hover {
-  transform: translateY(-2px);
-  border-color: rgba(168, 85, 247, 0.55);
 }
 
 .x-item.is-active {
@@ -112,6 +106,29 @@ plan-view {
 
 .x-item.is-complete {
   opacity: 0.72;
+}
+
+.x-goal-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.x-goal-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #22d3ee, #a855f7, #ec4899);
+  opacity: 0;
+  transform: scaleY(0.2);
+  transform-origin: center top;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.x-goal-card.is-selected::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 
 .x-selected-tag {
@@ -137,6 +154,7 @@ plan-view {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
   border-top: 1px dashed rgba(168, 85, 247, 0.45);
+  animation: xWorkspaceOpen 320ms ease both;
 }
 
 .x-goal-workspace {
@@ -146,6 +164,19 @@ plan-view {
   border: 1px solid rgba(168, 85, 247, 0.35);
   border-radius: var(--radius-sm);
   padding: var(--space-4);
+  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.2);
+}
+
+.x-goal-workspace h4 {
+  font-family: var(--font-heading);
+  font-size: 1.18rem;
+}
+
+.x-workspace-title {
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  color: #d6c6ff;
+  margin: 0;
 }
 
 .x-small {
@@ -227,6 +258,17 @@ plan-view {
   }
 }
 
+@keyframes xWorkspaceOpen {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .x-goal-badges {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -260,11 +302,37 @@ plan-view {
   gap: var(--space-2);
   align-items: center;
   padding-top: var(--space-2);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: xTimelineIn 340ms ease forwards;
 }
 
 .x-timeline-row.is-done {
   opacity: 0.6;
   text-decoration: line-through;
+}
+
+.x-timeline-title {
+  word-break: break-word;
+}
+
+.x-timeline-day {
+  border-color: rgba(168, 85, 247, 0.36);
+}
+
+.x-status-warning {
+  color: #facc15;
+}
+
+@keyframes xTimelineIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -274,11 +342,10 @@ plan-view {
     background-position: 50% 50%;
   }
 
-  .x-item {
-    transition: none;
-  }
-
-  .x-item:hover {
+  .x-goal-workspace-embed,
+  .x-timeline-row {
+    animation: none;
+    opacity: 1;
     transform: none;
   }
 }

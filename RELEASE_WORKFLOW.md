@@ -11,6 +11,7 @@ This project uses immutable backup branches and semantic versioning.
   - version bump in `VERSION`,
   - changelog entry in `CHANGELOG.md`,
   - deploy-ready Worker config,
+  - stable `WRITE_API_KEY` secret already configured in target environment,
   - route checks for `/`, `/scheduler`, `/api/health`, `/api/queue/today`.
 - Never force-push or rewrite any `backup/*` branch.
 
@@ -33,6 +34,7 @@ This project uses immutable backup branches and semantic versioning.
    - `Rollback: backup/vX.Y.Z`
 6. Ensure required bindings/secrets are documented:
    - `ASSETS`, `DB`, `WRITE_API_KEY`
+   - verify `/api/health` reports `"write_key": true` before functional checks
 7. Deploy:
    - `npx wrangler versions upload`
 8. Verify production:
@@ -49,6 +51,7 @@ This project uses immutable backup branches and semantic versioning.
 - `backup/v0.3.1`
 - `backup/v0.4.0`
 - `backup/v0.4.1`
+- `backup/v0.4.2`
 
 ## Rollback
 

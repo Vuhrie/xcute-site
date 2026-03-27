@@ -1,6 +1,26 @@
-# Changelog
+Ôªø# Changelog
 
 All notable changes for this project are documented in this file.
+
+## v0.4.2 - 2026-03-28
+
+### Added
+- Added clear write-key diagnostics in UI for key mismatch vs server secret not configured.
+- Added break-skip confirmation flow and API support for forced break acknowledgment (`skip_break`).
+- Added stronger timeline/goal workspace reveal animations with reduced-motion fallback.
+
+### Changed
+- Reworked selected-goal workspace to read as a direct extension of the selected goal card.
+- Expanded timeline loading window to include scheduled data + latest goal target date context.
+- Improved queue countdown smoothness with local optimistic timer and gentle server reconciliation.
+- Updated setup docs with one-time permanent secret configuration guidance for `WRITE_API_KEY`.
+- Updated scheduler version labels to `v0.4.2`.
+
+### Fixed
+- Fixed full timeline rendering to consistently show per-date task rows.
+- Fixed queue/task labels to remove prior encoding separator artifacts.
+
+Rollback: `backup/v0.4.2`
 
 ## v0.4.1 - 2026-03-27
 
@@ -50,7 +70,7 @@ Rollback: `backup/v0.4.0`
 - Bumped version to `v0.3.1`.
 
 ### Fixed
-- Fixed confusing ìplan generated but emptyî behavior for no-task goals by rendering a visible planned block.
+- Fixed confusing ‚Äúplan generated but empty‚Äù behavior for no-task goals by rendering a visible planned block.
 
 Rollback: `backup/v0.3.1`
 
@@ -120,6 +140,3 @@ Rollback: `backup/v0.1.1`
 - N/A (initial versioned baseline).
 
 Rollback: `backup/v0.1.0`
-
-
-

@@ -1,4 +1,4 @@
-﻿import { getState, setWriteKey, subscribe } from "../core/store.js";
+import { getState, setState, setWriteKey, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -35,25 +35,37 @@ export class WriteKeyPanel extends HTMLElement {
 
     if (action === "save") {
       setWriteKey(this.input.value);
-      this.status.textContent = getState().writeKey ? "Write key saved in this browser." : "Key is empty.";
+      const hasKey = Boolean(getState().writeKey);
+      setState({ writeKeyWarning: hasKey ? "" : "Write key missing or incorrect. Update it and click Save Key." });
+      this.status.textContent = hasKey ? "Write key saved in this browser." : "Key is empty.";
       return;
     }
 
     if (action === "clear") {
       setWriteKey("");
       this.input.value = "";
+      setState({ writeKeyWarning: "Write key missing or incorrect. Update it and click Save Key." });
       this.status.textContent = "Write key cleared.";
     }
   }
 
   render() {
-    const hasKey = Boolean(getState().writeKey);
+    const state = getState();
+    const hasKey = Boolean(state.writeKey);
     if (!this.input.matches(":focus")) {
-      this.input.value = getState().writeKey;
+      this.input.value = state.writeKey;
     }
-    if (!this.status.textContent) {
-      this.status.textContent = hasKey ? "Write key is configured." : "No write key set yet.";
-    }
+
+    const message =
+      state.writeKeyWarning ||
+      (state.writeKeyServerReady === false
+        ? "Server secret WRITE_API_KEY is not configured yet."
+        : hasKey
+          ? "Write key is configured."
+          : "No write key set yet.");
+
+    this.status.textContent = message;
+    this.status.classList.toggle("x-status-warning", Boolean(state.writeKeyWarning || state.writeKeyServerReady === false));
   }
 }
 

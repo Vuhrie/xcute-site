@@ -1,4 +1,28 @@
-﻿import { getState } from "./store.js";
+import { getState, setState } from "./store.js";
+
+const WRITE_KEY_HELP = "Write key missing or incorrect. Update it and click Save Key.";
+const SERVER_KEY_HELP = "Server secret WRITE_API_KEY is not configured yet.";
+
+function codeFromError(error) {
+  return String(error?.code || error?.message || "request_failed");
+}
+
+export function isWriteKeyIssue(error) {
+  const code = codeFromError(error);
+  return code === "forbidden" || code === "missing_write_key" || code === "write_key_not_configured";
+}
+
+export function toUiError(error) {
+  const code = codeFromError(error);
+  if (code === "forbidden" || code === "missing_write_key") return WRITE_KEY_HELP;
+  if (code === "write_key_not_configured") return SERVER_KEY_HELP;
+  if (code === "request_failed") return "Request failed. Please try again.";
+  return code.replaceAll("_", " ");
+}
+
+function setWriteKeyWarning(message) {
+  setState({ writeKeyWarning: message || "" });
+}
 
 async function call(path, { method = "GET", body } = {}) {
   const upper = method.toUpperCase();
@@ -6,7 +30,10 @@ async function call(path, { method = "GET", body } = {}) {
   const key = getState().writeKey;
 
   if (needsWriteKey && !key) {
-    throw new Error("missing_write_key");
+    setWriteKeyWarning(WRITE_KEY_HELP);
+    const error = new Error("missing_write_key");
+    error.code = "missing_write_key";
+    throw error;
   }
 
   const response = await fetch(path, {
@@ -20,8 +47,15 @@ async function call(path, { method = "GET", body } = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.error || data?.detail || "request_failed");
+    const code = String(data?.error || data?.detail || "request_failed");
+    if (code === "forbidden" || code === "missing_write_key") setWriteKeyWarning(WRITE_KEY_HELP);
+    if (code === "write_key_not_configured") setWriteKeyWarning(SERVER_KEY_HELP);
+    const error = new Error(code);
+    error.code = code;
+    throw error;
   }
+
+  if (needsWriteKey) setWriteKeyWarning("");
   return data;
 }
 

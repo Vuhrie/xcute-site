@@ -192,7 +192,7 @@ async function listTimeline(db, fromDate, toDate) {
               g.target_date AS goal_target_date,
               g.daily_hours AS goal_daily_hours,
               e.task_id,
-              e.title,
+              COALESCE(e.title, t.title, 'Task') AS title,
               e.date,
               e.minutes_allocated,
               e.order_index,
@@ -200,6 +200,7 @@ async function listTimeline(db, fromDate, toDate) {
               COALESCE(q.status, 'pending') AS queue_status
        FROM schedule_entries e
        JOIN shared_goals g ON g.id = e.goal_id AND g.scope = e.scope
+       LEFT JOIN shared_tasks t ON t.id = e.task_id
        LEFT JOIN queue_item_state q ON q.scope = e.scope AND q.date = e.date AND q.entry_id = e.id
        WHERE e.scope = ? AND e.date >= ? AND e.date <= ?
        ORDER BY e.date ASC, e.order_index ASC, e.created_at ASC`
@@ -241,6 +242,24 @@ async function listTimeline(db, fromDate, toDate) {
 
   const goals = [...stats.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
   return { items, goals };
+}
+
+async function resolveTimelineTo(db, fromDate) {
+  const fallback = addDays(fromDate, 30);
+  const [maxScheduled, maxTarget] = await Promise.all([
+    db.prepare(`SELECT MAX(date) AS max_date FROM schedule_entries WHERE scope = ?`).bind(SHARED_SCOPE).all(),
+    db
+      .prepare(`SELECT MAX(target_date) AS max_target_date FROM shared_goals WHERE scope = ? AND target_date IS NOT NULL`)
+      .bind(SHARED_SCOPE)
+      .all(),
+  ]);
+
+  let resolved = fallback;
+  const scheduled = String((maxScheduled.results || [])[0]?.max_date || "").trim();
+  const target = String((maxTarget.results || [])[0]?.max_target_date || "").trim();
+  if (DATE_PATTERN.test(scheduled) && scheduled > resolved) resolved = scheduled;
+  if (DATE_PATTERN.test(target) && target > resolved) resolved = target;
+  return resolved;
 }
 
 async function getQueueSession(db, dateIso) {
@@ -370,7 +389,7 @@ async function fetchQueueRows(db, dateIso) {
               g.title AS goal_title,
               g.target_date AS goal_target_date,
               e.task_id,
-              e.title,
+              COALESCE(e.title, t.title, 'Task') AS title,
               e.date,
               e.minutes_allocated,
               e.order_index,
@@ -713,12 +732,12 @@ async function completeQueue(db, dateIso) {
   return json(await getQueuePayload(db, dateIso));
 }
 
-async function ackBreak(db, dateIso) {
+async function ackBreak(db, dateIso, skipBreak) {
   const { rows, session } = await normalizeQueueState(db, dateIso);
   if (session.mode !== "break") return json(buildQueuePayload(rows, session, dateIso));
 
   const remaining = effectiveRemainingSec(session);
-  if (remaining > 0) {
+  if (remaining > 0 && !skipBreak) {
     return json({ error: "break_not_finished", remaining_sec: remaining }, 409);
   }
 
@@ -1048,7 +1067,8 @@ async function handleApi(request, url, env) {
 
   if (path === "/api/schedule/timeline" && method === "GET") {
     const fromDate = asDateOrDefault(url.searchParams.get("from"), todayIso());
-    const toDate = asDateOrDefault(url.searchParams.get("to"), addDays(fromDate, 30));
+    const requestedTo = asDateOrNull(url.searchParams.get("to"));
+    const toDate = requestedTo || (await resolveTimelineTo(db, fromDate));
     const safeTo = toDate >= fromDate ? toDate : fromDate;
     const timeline = await listTimeline(db, fromDate, safeTo);
     return json({ from: fromDate, to: safeTo, items: timeline.items, goals: timeline.goals });
@@ -1087,7 +1107,7 @@ async function handleApi(request, url, env) {
   if (path === "/api/queue/break/ack" && method === "POST") {
     const body = await readBody(request);
     const dateIso = asDateOrDefault(body.date, todayIso());
-    return ackBreak(db, dateIso);
+    return ackBreak(db, dateIso, Boolean(body.skip_break));
   }
 
   return json({ error: "not_found" }, 404);

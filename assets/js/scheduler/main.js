@@ -9,7 +9,7 @@ import "./components/plan-view.js";
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.4.1";
+  node.textContent = "Version v0.4.2";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
     if (/^v\d+\.\d+\.\d+$/.test(text)) node.textContent = `Version ${text}`;

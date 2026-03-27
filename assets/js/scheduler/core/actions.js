@@ -18,6 +18,19 @@ function addDays(dateIso, days) {
   return date.toISOString().slice(0, 10);
 }
 
+function maxTimelineTo(from) {
+  const fallback = addDays(from, 30);
+  const goals = getState().goals || [];
+  let max = fallback;
+  for (const goal of goals) {
+    const target = String(goal?.target_date || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(target) && target > max) {
+      max = target;
+    }
+  }
+  return max;
+}
+
 function applyQueueState(result) {
   setState({
     queueDate: result.date || todayIso(),
@@ -49,7 +62,7 @@ export async function refreshGoalData(goalId = getState().selectedGoalId) {
 
 export async function refreshTimeline(range = {}) {
   const from = range.from || todayIso();
-  const to = range.to || addDays(from, 30);
+  const to = range.to || maxTimelineTo(from);
   const result = await api.getTimeline({ from, to });
   setState({
     timelineItems: result.items || [],
@@ -63,6 +76,17 @@ export async function refreshTodayQueue(date = todayIso()) {
 }
 
 export async function bootstrapScheduler() {
+  try {
+    const health = await api.health();
+    const serverReady = Boolean(health?.write_key);
+    setState({
+      writeKeyServerReady: serverReady,
+      writeKeyWarning: serverReady ? "" : "Server secret WRITE_API_KEY is not configured yet.",
+    });
+  } catch {
+    setState({ writeKeyServerReady: null });
+  }
+
   const selectedGoalId = await refreshGoals();
   await refreshGoalData(selectedGoalId);
   await Promise.all([refreshTodayQueue(), refreshTimeline()]);
@@ -116,7 +140,11 @@ export async function reorderTask(taskId, direction) {
 
 export async function spreadSelectedGoal({ startMode, targetDate }) {
   const goalId = getState().selectedGoalId;
-  if (!goalId) throw new Error("goal_required");
+  if (!goalId) {
+    const error = new Error("goal_required");
+    error.code = "goal_required";
+    throw error;
+  }
 
   const result = await api.spread({
     goal_id: goalId,
@@ -155,7 +183,10 @@ export async function queueComplete() {
   await Promise.all([refreshGoalData(), refreshTimeline()]);
 }
 
-export async function queueAckBreak() {
-  const result = await api.queueAckBreak({ date: getState().queueDate || todayIso() });
+export async function queueAckBreak(skipBreak = false) {
+  const result = await api.queueAckBreak({
+    date: getState().queueDate || todayIso(),
+    skip_break: Boolean(skipBreak),
+  });
   applyQueueState(result);
 }

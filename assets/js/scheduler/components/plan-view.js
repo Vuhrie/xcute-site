@@ -4,6 +4,7 @@ const template = document.createElement("template");
 template.innerHTML = `
   <section class="x-panel x-plan-panel">
     <h3>Full Timeline</h3>
+    <p class="x-small">All planned tasks by date, across goals.</p>
     <div class="x-goal-badges" data-role="goal-badges"></div>
     <div class="x-list" data-role="timeline"></div>
   </section>
@@ -22,11 +23,18 @@ function goalBadge(goal) {
   const total = Number.parseInt(goal.total_min, 10) || 0;
   const done = Number.parseInt(goal.completed_min, 10) || 0;
   const ratio = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
+  const targetLabel = goal.target_date || "Daily";
   return `<article class="x-goal-badge">
     <strong>${goal.title}</strong>
-    <div class="x-small">Target: ${goal.target_date || "none"} | ${done}/${total} min</div>
+    <div class="x-small">Target: ${targetLabel} | ${done}/${total} min</div>
     <div class="x-progress"><div class="x-progress__bar" style="transform: scaleX(${ratio})"></div></div>
   </article>`;
+}
+
+function byDateThenOrder(a, b) {
+  if (a.date !== b.date) return String(a.date).localeCompare(String(b.date));
+  if ((a.order_index || 0) !== (b.order_index || 0)) return (a.order_index || 0) - (b.order_index || 0);
+  return String(a.entry_id || "").localeCompare(String(b.entry_id || ""));
 }
 
 export class PlanView extends HTMLElement {
@@ -44,7 +52,7 @@ export class PlanView extends HTMLElement {
 
   render() {
     const goals = getState().timelineGoals || [];
-    const items = getState().timelineItems || [];
+    const items = [...(getState().timelineItems || [])].sort(byDateThenOrder);
 
     if (!goals.length) {
       this.badgesNode.innerHTML = `<article class="x-item x-small">No scheduled goals yet.</article>`;
@@ -64,20 +72,20 @@ export class PlanView extends HTMLElement {
     }
 
     this.timelineNode.innerHTML = [...grouped.entries()]
-      .map(([date, rows]) => {
+      .map(([date, rows], dayIndex) => {
         const total = rows.reduce((sum, row) => sum + (Number.parseInt(row.minutes_allocated, 10) || 0), 0);
         const content = rows
-          .map((row) => {
+          .map((row, rowIndex) => {
             const done = row.entry_done ? "is-done" : "";
-            return `<div class="x-timeline-row ${done}">
+            return `<div class="x-timeline-row ${done}" style="animation-delay:${Math.min(800, dayIndex * 60 + rowIndex * 45)}ms">
               <span class="x-chip">${row.goal_title}</span>
-              <span>${row.title}</span>
+              <span class="x-timeline-title">${row.title || "Task"}</span>
               <span class="x-small">${formatMinutes(row.minutes_allocated)}</span>
             </div>`;
           })
           .join("");
 
-        return `<article class="x-item">
+        return `<article class="x-item x-timeline-day">
           <div class="x-inline x-space-between">
             <strong>${date}</strong>
             <span class="x-small">Total: ${formatMinutes(total)}</span>

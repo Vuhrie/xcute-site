@@ -11,6 +11,8 @@
   timelineItems: [],
   timelineGoals: [],
   writeKey: localStorage.getItem("xcute_write_key") || "",
+  writeKeyWarning: "",
+  writeKeyServerReady: null,
 };
 
 const listeners = new Set();

@@ -10,24 +10,30 @@ npx wrangler d1 create xcute_scheduler
 
 Copy the returned `database_id`.
 
-## 2. Set DB binding in repo config
+## 2. Bind DB in Cloudflare Worker dashboard
 
-`wrangler.jsonc` already includes:
-
-- binding: `DB`
-- database_name: `xcute_scheduler`
-- database_id: `2c263539-df20-417e-be23-5ff0c4e8f982`
-
-If you move to a different DB in future, update only the `database_id` in `wrangler.jsonc`.
+1. Open Worker: `xcute-site`
+2. Go to **Settings -> Variables**
+3. Add **D1 binding**:
+   - Variable name: `DB`
+   - Database: `xcute_scheduler`
 
 ## 3. Add write key secret
 
 In Worker settings, add secret text:
 
 - Name: `WRITE_API_KEY`
-- Value: long random value (example: 32+ chars)
+- Value: `WHATTHEHELLISABANANA69`
 
 The scheduler UI stores this key in browser local storage and sends it in `x-write-key` for edits.
+You only set this once per environment (Production/Preview). It remains through normal deploys.
+
+CLI alternative:
+
+```bash
+npx wrangler secret put WRITE_API_KEY
+# paste: WHATTHEHELLISABANANA69
+```
 
 ## 4. Apply migrations
 
@@ -59,6 +65,7 @@ npx wrangler versions upload
 ## 6. Verify
 
 1. Open `/api/health` and confirm `{ "ok": true, ... }`
+   - confirm `"write_key": true` so server secret is active
 2. Open `/scheduler`
 3. Save your write key in the **Write Key** panel
 4. Create a goal, add tasks, run **Generate Plan**

@@ -1,4 +1,5 @@
 import { createGoal, refreshGoalData, selectGoal, updateGoal } from "../core/actions.js";
+import { toUiError } from "../core/api.js";
 import { getState, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
@@ -26,14 +27,21 @@ template.innerHTML = `
   </section>
 `;
 
+function goalMeta(goal) {
+  const target = goal.target_date ? `Target: ${goal.target_date}` : "Daily";
+  return `${goal.daily_hours}h/day | ${target}`;
+}
+
 function cardMarkup(goal, selectedGoalId, editingGoalId) {
-  const active = goal.id === selectedGoalId ? " is-active" : "";
+  const active = goal.id === selectedGoalId ? " is-active is-selected" : "";
   const isEditing = goal.id === editingGoalId;
-  return `<article class="x-item${active}">
+  const isSelected = goal.id === selectedGoalId;
+  return `<article class="x-item x-goal-card${active}">
     <div class="x-inline x-space-between">
       <div>
         <strong>${goal.title}</strong>
-        <div class="x-small">${goal.daily_hours}h/day | Target: ${goal.target_date || "none"}</div>
+        <div class="x-small">${goalMeta(goal)}</div>
+        ${isSelected ? `<div class="x-selected-tag">Selected Goal Workspace</div>` : ""}
       </div>
       <div class="x-inline">
         <button class="c-btn" data-action="select" data-id="${goal.id}">Use</button>
@@ -57,6 +65,13 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
         <button class="c-btn" data-action="edit-save" data-id="${goal.id}">Save</button>
         <button class="c-btn c-btn--muted" data-action="edit-cancel">Cancel</button>
       </div>
+    </div>`
+        : ""
+    }
+    ${
+      isSelected
+        ? `<div class="x-goal-workspace-embed">
+      <goal-workspace-panel data-embedded="true"></goal-workspace-panel>
     </div>`
         : ""
     }
@@ -134,7 +149,7 @@ export class GoalPanel extends HTMLElement {
         this.status.textContent = "Goal updated.";
       }
     } catch (error) {
-      this.status.textContent = `Error: ${error.message}`;
+      this.status.textContent = `Error: ${toUiError(error)}`;
     }
   }
 

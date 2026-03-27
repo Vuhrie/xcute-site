@@ -1,15 +1,18 @@
 # xcute-site
 
-XCute is a modular Cloudflare Worker app with a shared scheduler and queue-first daily execution flow.
+XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
 
-## What is in v0.4.1
+## What is in v0.4.2
 
-- Built-in D1 binding in `wrangler.jsonc` for `DB` (`xcute_scheduler`)
-- Smoother queue countdown with local optimistic start + gradual server reconciliation
-- Animated shifting progress bars for running state and preserved paused progress visuals
-- Selected goal workspace embedded directly inside the selected goal card
-- Encoding cleanup and UI polish for clearer status text
-- Existing queue APIs and deterministic spread planner preserved
+- Queue-first scheduler UX at `/scheduler` (Today Queue is top/primary)
+- Spotify-like queue controls: `Start`, `Pause`, `Skip`, `Complete`, `Continue After Break`
+- Break skip now asks confirmation before forcing end of break
+- Shared runtime queue state in D1 (works across tabs/devices)
+- Break flow by duration bucket (5m / 10m / 15m)
+- Goal-coupled planner workspace embedded in selected goal card
+- Full timeline view across goals with per-date task rows and target-date/daily badges
+- Existing deterministic spread planner preserved (`/api/schedule/spread`)
+- Write-key diagnostics for key mismatch vs missing server secret
 
 ## Routes
 
@@ -26,13 +29,31 @@ XCute is a modular Cloudflare Worker app with a shared scheduler and queue-first
 - `POST /api/queue/pause`
 - `POST /api/queue/skip`
 - `POST /api/queue/complete`
-- `POST /api/queue/break/ack`
+- `POST /api/queue/break/ack` (optional body: `{ "skip_break": true }`)
 
-## Required bindings/secrets
+## Required bindings now
 
 - `ASSETS` (static assets)
-- `DB` (D1 binding, now defined in `wrangler.jsonc`)
+- `DB` (D1 database binding)
 - `WRITE_API_KEY` (Worker secret; used by client in `x-write-key` for mutating API requests)
+
+### Permanent secret setup (one-time)
+
+Set your production secret once and keep it stable across deploys:
+
+```bash
+npx wrangler secret put WRITE_API_KEY
+# value: WHATTHEHELLISABANANA69
+```
+
+Or set the same value in Cloudflare Dashboard -> Worker -> Settings -> Variables and Secrets.
+
+Removed from the app:
+
+- `OTP_KV`
+- `SESSION_KV`
+- `RESEND_API_KEY`
+- `OTP_FROM_EMAIL`
 
 ## Deploy settings (Cloudflare Workers from Git)
 
