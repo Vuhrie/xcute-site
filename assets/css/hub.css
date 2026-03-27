@@ -11,6 +11,22 @@
   gap: var(--space-4);
 }
 
+.c-hub-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0), rgba(168, 85, 247, 0.84), rgba(34, 211, 238, 0));
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition: opacity var(--dur-fast), transform var(--dur-mid) var(--ease-cinematic);
+}
+
+.c-hub-card:hover::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
 .c-hub-card__btn {
   margin-top: auto;
 }
@@ -20,4 +36,3 @@
     grid-template-columns: 1fr;
   }
 }
-

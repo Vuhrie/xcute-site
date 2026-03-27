@@ -1,5 +1,6 @@
 import { createGoal, deleteGoal as removeGoal, refreshGoalData, selectGoal, updateGoal } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
+import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
 import { getState, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
@@ -36,7 +37,7 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
   const active = goal.id === selectedGoalId ? " is-active is-selected" : "";
   const isEditing = goal.id === editingGoalId;
   const isSelected = goal.id === selectedGoalId;
-  return `<article class="x-item x-goal-card${active}">
+  return `<article class="x-item x-goal-card x-goal-row${active}">
     <div class="x-inline x-space-between">
       <div>
         <strong>${goal.title}</strong>
@@ -77,6 +78,7 @@ export class GoalPanel extends HTMLElement {
     this.append(template.content.cloneNode(true));
     this.status = this.querySelector('[data-role="status"]');
     this.goalList = this.querySelector('[data-role="goals"]');
+    animatePanel(this.querySelector(".x-panel"));
     this.editingGoalId = "";
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribe(() => this.render());
@@ -115,6 +117,7 @@ export class GoalPanel extends HTMLElement {
         });
         this.querySelector('[name="title"]').value = "";
         this.setStatus("Goal created.");
+        animateStateBump(this.goalList);
         return;
       }
 
@@ -124,6 +127,7 @@ export class GoalPanel extends HTMLElement {
         selectGoal(id);
         await refreshGoalData(id);
         this.setStatus("Goal selected.");
+        animateStateBump(this.goalList);
         return;
       }
 
@@ -153,6 +157,7 @@ export class GoalPanel extends HTMLElement {
         });
         this.editingGoalId = "";
         this.setStatus("Goal updated.");
+        animateStateBump(this.goalList);
         return;
       }
 
@@ -165,6 +170,7 @@ export class GoalPanel extends HTMLElement {
         await removeGoal(id);
         this.clearEditingIf(id);
         this.setStatus("Goal deleted.");
+        animateStateBump(this.goalList);
       }
     } catch (error) {
       this.setStatus(`Error: ${toUiError(error)}`);
@@ -177,6 +183,7 @@ export class GoalPanel extends HTMLElement {
       this.editingGoalId = "";
     }
     this.goalList.innerHTML = goals.map((goal) => cardMarkup(goal, selectedGoalId, this.editingGoalId)).join("");
+    animateRows(this.goalList, ".x-goal-row", 36);
   }
 }
 

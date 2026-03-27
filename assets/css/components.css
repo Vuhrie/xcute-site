@@ -1,4 +1,4 @@
-﻿.c-hero {
+.c-hero {
   padding: clamp(var(--space-10), 8vw, 6.5rem);
   background: linear-gradient(150deg, rgba(31, 24, 53, 0.88), rgba(19, 14, 35, 0.84));
   border: 1px solid var(--border);
@@ -6,6 +6,7 @@
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: var(--space-6);
+  backdrop-filter: blur(3px);
 }
 
 .c-kicker {
@@ -59,6 +60,7 @@
   color: #f8f6ff;
   font-weight: 700;
   transition: transform var(--dur-fast), box-shadow var(--dur-fast), filter var(--dur-fast);
+  will-change: transform;
 }
 
 .c-btn:hover {
@@ -100,8 +102,13 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
-  display: grid;
-  gap: var(--space-3);
+  display: grid;`r`n  gap: var(--space-3);`r`n  backdrop-filter: blur(2px);`r`n  position: relative;`r`n  overflow: hidden;
+}
+
+.c-card:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: var(--shadow-pop);
+  border-color: rgba(168, 85, 247, 0.45);
 }
 
 .c-card__title {

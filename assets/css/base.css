@@ -13,6 +13,7 @@ body {
 body {
   position: relative;
   overflow-x: hidden;
+  isolation: isolate;
   color: var(--text);
   background:
     radial-gradient(circle at 18% 12%, rgba(73, 37, 154, 0.35) 0, transparent 36%),
@@ -20,6 +21,35 @@ body {
     var(--bg);
   font-family: var(--font-body);
   line-height: 1.5;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -12vh -12vw;
+  pointer-events: none;
+  z-index: -2;
+}
+
+body::before {
+  background:
+    radial-gradient(55rem 32rem at 12% 28%, rgba(145, 86, 255, 0.22) 0, transparent 72%),
+    radial-gradient(48rem 30rem at 88% 72%, rgba(34, 211, 238, 0.16) 0, transparent 68%),
+    radial-gradient(36rem 18rem at 52% 18%, rgba(236, 72, 153, 0.1) 0, transparent 78%);
+  filter: blur(10px) saturate(1.12);
+  animation: nebula-drift var(--dur-ambient) linear infinite;
+}
+
+body::after {
+  z-index: -1;
+  opacity: 0.75;
+  background-image:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 64% 38%, rgba(199, 231, 255, 0.2) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 44% 78%, rgba(243, 215, 255, 0.22) 0 1px, transparent 1.6px);
+  background-size: 220px 220px, 260px 260px, 300px 300px;
+  animation: stardust-shift calc(var(--dur-ambient) * 1.45) linear infinite;
 }
 
 h1,
@@ -47,6 +77,48 @@ a {
   gap: var(--space-16);
 }
 
+.c-ambient-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.66;
+  mix-blend-mode: screen;
+  transition: opacity var(--dur-mid) var(--ease-out);
+}
+
+.c-motion-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 30;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-radius: 999px;
+  padding: 0.42rem 0.78rem;
+  background: linear-gradient(120deg, rgba(31, 22, 53, 0.94), rgba(17, 13, 30, 0.88));
+  color: #efe9ff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+  transition: transform var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+
+.c-motion-toggle:hover {
+  transform: translate3d(0, -2px, 0);
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 0 18px 34px rgba(26, 8, 48, 0.55);
+}
+
+.c-motion-toggle[aria-pressed="false"] {
+  border-color: rgba(198, 180, 241, 0.36);
+  color: #cab9eb;
+  background: linear-gradient(120deg, rgba(26, 22, 41, 0.9), rgba(15, 13, 26, 0.85));
+}
+
 .bg-orb {
   position: fixed;
   width: 35rem;
@@ -71,6 +143,11 @@ a {
 }
 
 @media (max-width: 48rem) {
+  body::before,
+  body::after {
+    inset: -8vh -8vw;
+  }
+
   .l-page {
     width: min(100% - 1.5rem, 72rem);
     gap: var(--space-12);
@@ -80,5 +157,10 @@ a {
   .bg-orb {
     width: 24rem;
     height: 24rem;
+  }
+
+  .c-motion-toggle {
+    top: 0.7rem;
+    right: 0.7rem;
   }
 }

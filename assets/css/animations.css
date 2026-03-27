@@ -1,9 +1,8 @@
 @keyframes reveal-up {
   from {
     opacity: 0;
-    transform: translate3d(0, 24px, 0);
+    transform: translate3d(0, calc(24px * var(--motion-intensity)), 0);
   }
-
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
@@ -13,9 +12,8 @@
 @keyframes reveal-scale {
   from {
     opacity: 0;
-    transform: translate3d(0, 16px, 0) scale(0.96);
+    transform: translate3d(0, calc(16px * var(--motion-intensity)), 0) scale(0.96);
   }
-
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
@@ -25,9 +23,8 @@
 @keyframes char-rise {
   from {
     opacity: 0;
-    transform: translate3d(0, 0.85em, 0) rotate(2deg);
+    transform: translate3d(0, calc(0.85em * var(--motion-intensity)), 0) rotate(2deg);
   }
-
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) rotate(0);
@@ -39,9 +36,44 @@
   100% {
     transform: translate3d(0, 0, 0);
   }
-
   50% {
-    transform: translate3d(0, -3px, 0);
+    transform: translate3d(0, calc(-4px * var(--motion-intensity)), 0);
+  }
+}
+
+@keyframes nebula-drift {
+  0% {
+    transform: translate3d(-1.2%, -0.9%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.2%, 1.3%, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(-1.2%, -0.9%, 0) scale(1);
+  }
+}
+
+@keyframes stardust-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.68;
+  }
+  50% {
+    transform: translate3d(-1.5%, 1.2%, 0);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.68;
+  }
+}
+
+@keyframes sheen-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 220% 50%;
   }
 }
 
@@ -53,20 +85,53 @@
 
 [data-animate].is-visible {
   animation: reveal-up var(--dur-mid) var(--ease-out) forwards;
-  animation-delay: var(--delay, 0ms);
+  animation-delay: calc(var(--delay, 0ms) * var(--motion-stagger));
 }
 
 [data-animate="zoom-in"].is-visible {
   animation-name: reveal-scale;
 }
 
+[data-animate="fade-in"] {
+  transform: none;
+}
+
+[data-animate="fade-in"].is-visible {
+  animation-name: none;
+  opacity: 1;
+}
+
 .c-hero__title.is-animated .c-hero__char {
-  animation: char-rise 560ms var(--ease-out) forwards;
-  animation-delay: calc((var(--char-index, 0) * 28ms) + 120ms);
+  animation: char-rise 560ms var(--ease-cinematic) forwards;
+  animation-delay: calc((var(--char-index, 0) * 28ms * var(--motion-stagger)) + 120ms);
 }
 
 .c-version-badge.is-live {
-  animation: badge-float 2.4s ease-in-out infinite;
+  animation: badge-float 2.6s ease-in-out infinite;
+}
+
+.c-btn:not(:disabled) {
+  background-size: 220% 100%;
+  animation: sheen-shift 6s linear infinite;
+}
+
+.x-panel,
+.c-card,
+.c-hero,
+.x-item {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-mid) var(--ease-out),
+    border-color var(--dur-fast) linear,
+    opacity var(--dur-fast) linear;
+}
+
+html[data-motion-mode="off"] .c-btn:not(:disabled),
+html[data-motion-mode="off"] .c-version-badge.is-live,
+html[data-motion-mode="off"] body::before,
+html[data-motion-mode="off"] body::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
 }
 
 html[data-reduced-motion="true"] *,
@@ -90,4 +155,8 @@ html[data-reduced-motion="true"] .c-hero__char {
 
 html[data-reduced-motion="true"] .c-version-badge.is-live {
   animation: none !important;
+}
+
+html[data-reduced-motion="true"] .c-ambient-canvas {
+  opacity: 0.2;
 }

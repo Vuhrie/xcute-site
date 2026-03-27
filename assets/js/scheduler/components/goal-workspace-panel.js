@@ -1,5 +1,6 @@
 import { createTask, deleteTask as removeTask, reorderTask, spreadSelectedGoal, updateTask } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
+import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
 import { getState, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
@@ -50,7 +51,7 @@ function taskRow(task, index, total) {
   const upDisabled = index === 0 ? "disabled" : "";
   const downDisabled = index === total - 1 ? "disabled" : "";
   const completed = Number(task.completed) === 1;
-  return `<article class="x-item ${completed ? "is-complete" : ""}">
+  return `<article class="x-item x-task-row ${completed ? "is-complete" : ""}">
     <div class="x-inline x-space-between">
       <div>
         <strong>#${index + 1} ${task.title}</strong>
@@ -76,6 +77,7 @@ export class GoalWorkspacePanel extends HTMLElement {
     this.statusNode = this.querySelector('[data-role="status"]');
     this.captionNode = this.querySelector('[data-role="goal-caption"]');
     this.headerNode = this.querySelector('[data-role="goal-header"]');
+    animatePanel(this.rootNode);
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribe(() => this.render());
     this.render();
@@ -121,6 +123,7 @@ export class GoalWorkspacePanel extends HTMLElement {
         });
         this.querySelector('[name="title"]').value = "";
         this.setStatus("Task added.");
+        animateStateBump(this.rootNode);
         return;
       }
 
@@ -129,6 +132,7 @@ export class GoalWorkspacePanel extends HTMLElement {
         const targetDate = this.querySelector('input[name="target_date"]').value || null;
         const result = await spreadSelectedGoal({ startMode, targetDate });
         this.setStatus(`Plan generated from ${result.start_date}${result.target_date ? ` to ${result.target_date}` : ""}.`);
+        animateStateBump(this.rootNode);
         return;
       }
 
@@ -138,12 +142,14 @@ export class GoalWorkspacePanel extends HTMLElement {
       if (action === "up" || action === "down") {
         await reorderTask(id, action);
         this.setStatus("Priority updated.");
+        animateStateBump(this.rootNode);
         return;
       }
 
       if (action === "toggle") {
         await updateTask({ id, completed: event.target.dataset.value === "1" });
         this.setStatus("Task status updated.");
+        animateStateBump(this.rootNode);
         return;
       }
 
@@ -153,6 +159,7 @@ export class GoalWorkspacePanel extends HTMLElement {
         if (!approved) return;
         await removeTask(id);
         this.setStatus("Task deleted.");
+        animateStateBump(this.rootNode);
       }
     } catch (error) {
       this.setStatus(`Error: ${toUiError(error)}`);
@@ -182,6 +189,7 @@ export class GoalWorkspacePanel extends HTMLElement {
     }
 
     this.tasksNode.innerHTML = tasks.map((task, index) => taskRow(task, index, tasks.length)).join("");
+    animateRows(this.tasksNode, ".x-task-row", 28);
   }
 }
 

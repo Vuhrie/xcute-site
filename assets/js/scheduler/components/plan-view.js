@@ -1,4 +1,5 @@
 import { getState, subscribe } from "../core/store.js";
+import { animatePanel, animateRows } from "../core/motion.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -24,7 +25,7 @@ function goalBadge(goal) {
   const done = Number.parseInt(goal.completed_min, 10) || 0;
   const ratio = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
   const targetLabel = goal.target_date || "Daily";
-  return `<article class="x-goal-badge">
+  return `<article class="x-goal-badge x-goal-badge-row">
     <strong>${goal.title}</strong>
     <div class="x-small">Target: ${targetLabel} | ${done}/${total} min</div>
     <div class="x-progress"><div class="x-progress__bar" style="transform: scaleX(${ratio})"></div></div>
@@ -42,6 +43,7 @@ export class PlanView extends HTMLElement {
     this.append(template.content.cloneNode(true));
     this.badgesNode = this.querySelector('[data-role="goal-badges"]');
     this.timelineNode = this.querySelector('[data-role="timeline"]');
+    animatePanel(this.querySelector(".x-panel"));
     this.unsubscribe = subscribe(() => this.render());
     this.render();
   }
@@ -58,6 +60,7 @@ export class PlanView extends HTMLElement {
       this.badgesNode.innerHTML = `<article class="x-item x-small">No scheduled goals yet.</article>`;
     } else {
       this.badgesNode.innerHTML = goals.map((goal) => goalBadge(goal)).join("");
+      animateRows(this.badgesNode, ".x-goal-badge-row", 32);
     }
 
     const grouped = new Map();
@@ -72,12 +75,12 @@ export class PlanView extends HTMLElement {
     }
 
     this.timelineNode.innerHTML = [...grouped.entries()]
-      .map(([date, rows], dayIndex) => {
+      .map(([date, rows]) => {
         const total = rows.reduce((sum, row) => sum + (Number.parseInt(row.minutes_allocated, 10) || 0), 0);
         const content = rows
-          .map((row, rowIndex) => {
+          .map((row) => {
             const done = row.entry_done ? "is-done" : "";
-            return `<div class="x-timeline-row ${done}" style="animation-delay:${Math.min(800, dayIndex * 60 + rowIndex * 45)}ms">
+            return `<div class="x-timeline-row x-timeline-entry ${done}">
               <span class="x-chip">${row.goal_title}</span>
               <span class="x-timeline-title">${row.title || "Task"}</span>
               <span class="x-small">${formatMinutes(row.minutes_allocated)}</span>
@@ -94,6 +97,7 @@ export class PlanView extends HTMLElement {
         </article>`;
       })
       .join("");
+    animateRows(this.timelineNode, ".x-timeline-entry", 26);
   }
 }
 

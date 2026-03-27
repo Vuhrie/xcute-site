@@ -2,21 +2,17 @@
 
 XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
 
-## What is in v0.4.4
+## What is in v0.5.0
 
-- Queue-first scheduler UX at `/scheduler` (Today Queue is top/primary)
-- Spotify-like queue controls: `Start`, `Pause`, `Skip`, `Complete`, `Continue After Break`
-- Break skip now asks confirmation before forcing end of break
-- Shared runtime queue state in D1 (works across tabs/devices)
-- Break flow by duration bucket (5m / 10m / 15m)
-- Single stacked planner flow (Write Key -> Goals -> Workspace -> Timeline)
-- Goal and task delete support with cascading schedule/queue cleanup
-- Full timeline view across goals with per-date task rows and target-date/daily badges
-- Existing deterministic spread planner preserved (`/api/schedule/spread`)
-- Write-key diagnostics for key mismatch vs missing server secret
-- Optimization pass: compacted frontend refresh orchestration and queue action plumbing
-- Optimization pass: reduced duplicate UI status/error handling across scheduler components
-- Optimization pass: leaner queue route dispatch in Worker API
+- Full-site cinematic motion system (hybrid CSS + WAAPI) across Hub and Scheduler
+- Motion contract via `html[data-motion-mode="on|off"]` + reusable `data-animate` / `data-motion-role` hooks
+- Top-right quick motion toggle with persistence (`xcute_motion_mode`)
+- Space ambient layer (nebula drift + star field canvas) with hidden-tab throttling
+- Smooth route transitions between `/` and `/scheduler` with graceful fallback
+- Pointer-reactive card depth for desktop (`data-tilt`) with touch-safe fallback
+- Queue/timeline/goals/workspace state transitions unified through shared scheduler motion helpers
+- Mobile animation caps + reduced-motion compliance preserved
+- Existing scheduler logic/API behavior unchanged from v0.4.4
 
 ## Routes
 

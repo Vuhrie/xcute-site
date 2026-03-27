@@ -1,4 +1,5 @@
 import { getState, setState, setWriteKey, subscribe } from "../core/store.js";
+import { animatePanel, animateStateBump } from "../core/motion.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -19,6 +20,8 @@ export class WriteKeyPanel extends HTMLElement {
     this.append(template.content.cloneNode(true));
     this.input = this.querySelector('input[name="write_key"]');
     this.status = this.querySelector('[data-role="status"]');
+    this.panel = this.querySelector(".x-panel");
+    animatePanel(this.panel);
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribe(() => this.render());
     this.render();
@@ -38,6 +41,7 @@ export class WriteKeyPanel extends HTMLElement {
       const hasKey = Boolean(getState().writeKey);
       setState({ writeKeyWarning: hasKey ? "" : "Write key missing or incorrect. Update it and click Save Key." });
       this.status.textContent = hasKey ? "Write key saved in this browser." : "Key is empty.";
+      animateStateBump(this.panel);
       return;
     }
 
@@ -46,6 +50,7 @@ export class WriteKeyPanel extends HTMLElement {
       this.input.value = "";
       setState({ writeKeyWarning: "Write key missing or incorrect. Update it and click Save Key." });
       this.status.textContent = "Write key cleared.";
+      animateStateBump(this.panel);
     }
   }
 

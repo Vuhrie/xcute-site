@@ -2,6 +2,26 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.0 - 2026-03-28
+
+### Added
+- Added a shared cinematic motion foundation with reusable hooks (`data-animate`, `data-motion-role`, `data-stagger`) and shared scheduler motion adapters (`assets/js/scheduler/core/motion.js`).
+- Added global ambient space rendering with nebula/star drift, scroll parallax, and hidden-tab throttling in `assets/js/modules/ambient.js`.
+- Added top-right quick motion toggle (`Motion On/Off`) with persisted preference under `xcute_motion_mode`.
+
+### Changed
+- Upgraded reveal orchestration to WAAPI-first staged reveals with mobile animation caps and reduced-motion compatibility.
+- Added smooth route transitions between `/` and `/scheduler` with progressive enhancement fallback behavior.
+- Upgraded queue/goal/workspace/timeline component transitions to shared animated state bumps and staggered row reveals.
+- Refreshed global animation tokens, keyframes, and page styling for stronger cinematic space motion while keeping transform/opacity-first performance.
+- Bumped runtime labels and metadata to `v0.5.0`.
+
+### Fixed
+- Reduced animation jitter risk by throttling pointer-reactive depth and ambient scroll updates.
+- Removed ad hoc animation duplication by centralizing component motion helpers.
+
+Rollback: `backup/v0.5.0`
+
 ## v0.4.4 - 2026-03-28
 
 ### Changed

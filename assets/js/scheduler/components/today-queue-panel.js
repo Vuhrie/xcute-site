@@ -1,5 +1,6 @@
 import { queueAckBreak, queueComplete, queuePause, queueSkip, queueStart, refreshTodayQueue } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
+import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
 import { getState, subscribe } from "../core/store.js";
 
 const template = document.createElement("template");
@@ -45,7 +46,7 @@ function queueRow(item, activeEntryId, mode, running) {
   const active = item.entry_id === activeEntryId && mode === "task";
   const itemClass = active ? "x-item is-active" : "x-item";
   const status = active ? (running ? "running" : "paused") : item.status;
-  return `<article class="${itemClass}">
+  return `<article class="${itemClass} x-queue-item">
     <div class="x-inline x-space-between">
       <div>
         <strong>${item.title}</strong>
@@ -68,6 +69,8 @@ export class TodayQueuePanel extends HTMLElement {
     this.queueNode = this.querySelector('[data-role="queue"]');
     this.statusNode = this.querySelector('[data-role="status"]');
     this.skipButton = this.querySelector('[data-action="skip"]');
+    this.nowNode = this.querySelector('[data-role="now"]');
+    animatePanel(this.querySelector(".x-panel"));
     this.localClock = null;
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribe(() => this.render());
@@ -132,12 +135,14 @@ export class TodayQueuePanel extends HTMLElement {
       if (action === "start") {
         await queueStart();
         this.setStatus("Queue started.");
+        animateStateBump(this.nowNode);
         return;
       }
 
       if (action === "pause") {
         await queuePause();
         this.setStatus("Queue paused.");
+        animateStateBump(this.nowNode);
         return;
       }
 
@@ -147,23 +152,27 @@ export class TodayQueuePanel extends HTMLElement {
           if (!approved) return;
           await queueAckBreak(true);
           this.setStatus("Break skipped. Next task is ready.");
+          animateStateBump(this.nowNode);
           return;
         }
 
         await queueSkip();
         this.setStatus("Moved current task to queue end.");
+        animateStateBump(this.nowNode);
         return;
       }
 
       if (action === "complete") {
         await queueComplete();
         this.setStatus("Task slice completed.");
+        animateStateBump(this.nowNode);
         return;
       }
 
       if (action === "ack-break") {
         await queueAckBreak(false);
         this.setStatus("Break acknowledged. Start when ready.");
+        animateStateBump(this.nowNode);
         return;
       }
 
@@ -172,6 +181,7 @@ export class TodayQueuePanel extends HTMLElement {
         if (!id) return;
         await queueStart(id);
         this.setStatus("Queue started from selected task.");
+        animateStateBump(this.nowNode);
       }
     } catch (error) {
       this.setStatus(`Error: ${toUiError(error)}`);
@@ -242,6 +252,7 @@ export class TodayQueuePanel extends HTMLElement {
         .map((item) => queueRow(item, queueSession?.active_entry_id, queueSession?.mode, Number.parseInt(queueSession?.running, 10) === 1))
         .join("");
     }
+    animateRows(this.queueNode, ".x-queue-item", 34);
 
     this.renderNowOnly();
   }
