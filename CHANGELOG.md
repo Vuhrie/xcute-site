@@ -2,6 +2,23 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.4.3 - 2026-03-28
+
+### Added
+- Added write-key-protected delete APIs for goals and tasks (`DELETE /api/goals?id=...`, `DELETE /api/tasks?id=...`).
+- Added goal/task delete actions in scheduler UI with confirmation prompts.
+
+### Changed
+- Switched planner desktop layout to a single stacked flow to remove the empty right-side gap.
+- Moved selected-goal workspace out of embedded goal cards into a dedicated planner panel.
+- Simplified queue countdown rendering to stay visually steady without catch-up acceleration artifacts.
+- Bumped runtime labels and version metadata to `v0.4.3`.
+
+### Fixed
+- Fixed inability to delete tasks and goals end-to-end by cascading schedule and queue runtime cleanup.
+
+Rollback: `backup/v0.4.3`
+
 ## v0.4.2 - 2026-03-28
 
 ### Added

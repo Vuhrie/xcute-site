@@ -2,14 +2,15 @@
 
 XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
 
-## What is in v0.4.2
+## What is in v0.4.3
 
 - Queue-first scheduler UX at `/scheduler` (Today Queue is top/primary)
 - Spotify-like queue controls: `Start`, `Pause`, `Skip`, `Complete`, `Continue After Break`
 - Break skip now asks confirmation before forcing end of break
 - Shared runtime queue state in D1 (works across tabs/devices)
 - Break flow by duration bucket (5m / 10m / 15m)
-- Goal-coupled planner workspace embedded in selected goal card
+- Single stacked planner flow (Write Key -> Goals -> Workspace -> Timeline)
+- Goal and task delete support with cascading schedule/queue cleanup
 - Full timeline view across goals with per-date task rows and target-date/daily badges
 - Existing deterministic spread planner preserved (`/api/schedule/spread`)
 - Write-key diagnostics for key mismatch vs missing server secret
