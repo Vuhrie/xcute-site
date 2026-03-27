@@ -5,6 +5,16 @@ function intAttr(node, name, fallback = 0) {
   return Number.isNaN(value) ? fallback : value;
 }
 
+function floatAttr(node, name, fallback) {
+  const value = Number.parseFloat(node.dataset[name] || `${fallback}`);
+  if (Number.isNaN(value)) return fallback;
+  return value;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function timingFor(target) {
   const role = target.dataset.motionRole || "default";
   if (role === "hero") return { duration: 760, easing: "cubic-bezier(0.16, 1, 0.3, 1)" };
@@ -32,7 +42,14 @@ function keyframesFor(kind) {
 function inViewport(node) {
   const rect = node.getBoundingClientRect();
   const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-  return rect.top < vh * 0.9 && rect.bottom > vh * 0.1;
+  const revealStart = clamp(floatAttr(node, "revealStart", 0.78), 0.25, 0.95);
+  const revealThreshold = clamp(floatAttr(node, "revealThreshold", 0.26), 0.05, 0.95);
+  const visibleTop = Math.max(rect.top, 0);
+  const visibleBottom = Math.min(rect.bottom, vh);
+  const visiblePx = Math.max(0, visibleBottom - visibleTop);
+  const visibleRatio = visiblePx / Math.max(1, rect.height);
+  const crossedRevealLine = rect.top <= vh * revealStart && rect.bottom > 0;
+  return visibleRatio >= revealThreshold || crossedRevealLine;
 }
 
 export function initReveal({ reducedMotion = false } = {}) {
@@ -91,6 +108,14 @@ export function initReveal({ reducedMotion = false } = {}) {
     observer = null;
   };
 
+  const shouldReveal = (entry, node) => {
+    const revealStart = clamp(floatAttr(node, "revealStart", 0.78), 0.25, 0.95);
+    const revealThreshold = clamp(floatAttr(node, "revealThreshold", 0.26), 0.05, 0.95);
+    const viewport = entry.rootBounds?.height || window.innerHeight || document.documentElement.clientHeight || 0;
+    const crossedRevealLine = entry.boundingClientRect.top <= viewport * revealStart;
+    return entry.intersectionRatio >= revealThreshold || crossedRevealLine;
+  };
+
   const observe = () => {
     stop();
     observer = new IntersectionObserver(
@@ -98,6 +123,7 @@ export function initReveal({ reducedMotion = false } = {}) {
         entries.forEach((entry) => {
           const node = entry.target;
           if (entry.isIntersecting) {
+            if (!shouldReveal(entry, node)) return;
             if (node.classList.contains("is-visible")) return;
             if (!canAnimate()) {
               revealImmediate(node);
@@ -110,7 +136,10 @@ export function initReveal({ reducedMotion = false } = {}) {
           hideNode(node);
         });
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.1 }
+      {
+        rootMargin: "0px 0px -2% 0px",
+        threshold: [0, 0.08, 0.16, 0.24, 0.32, 0.4, 0.52, 0.68, 0.84, 1],
+      }
     );
     nodes.forEach((node) => observer.observe(node));
   };

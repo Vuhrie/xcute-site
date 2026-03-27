@@ -3,7 +3,13 @@ import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel x-plan-panel">
+  <section
+    class="x-panel x-plan-panel"
+    data-animate="fade-up"
+    data-motion-role="panel"
+    data-reveal-start="0.86"
+    data-reveal-threshold="0.32"
+  >
     <h3>Full Timeline</h3>
     <p class="x-small">All planned tasks by date, across goals.</p>
     <div class="x-goal-badges" data-role="goal-badges"></div>

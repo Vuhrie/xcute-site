@@ -31,17 +31,26 @@
     <main class="l-page l-scheduler-page">
       <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title" data-animate="zoom-in" data-motion-role="hero" data-tilt>
         <a href="/" class="c-kicker" data-motion-role="chip">Back To Hub</a>
-        <p class="c-version-badge" id="scheduler-version" data-motion-role="chip">Version v0.5.4</p>
+        <p class="c-version-badge" id="scheduler-version" data-motion-role="chip">Version v0.5.5</p>
         <h1 id="scheduler-title" class="c-hero__title" data-motion-role="hero">Goal Scheduler</h1>
         <p class="c-hero__subtitle" data-motion-role="panel">Open the site and instantly see today's queue, then manage goal tasks in one workspace.</p>
       </section>
 
-      <section class="c-section" aria-label="today-queue" data-animate="fade-up" data-stagger="40" data-motion-role="panel">
+      <section class="c-section" aria-label="today-queue">
         <today-queue-panel></today-queue-panel>
       </section>
 
-      <section class="c-section c-scheduler-grid" aria-labelledby="planner-title" data-animate="fade-up" data-delay="70" data-motion-role="panel">
-        <h2 id="planner-title" class="c-section__title" data-motion-role="hero">Planner</h2>
+      <section class="c-section c-scheduler-grid" aria-labelledby="planner-title">
+        <h2
+          id="planner-title"
+          class="c-section__title"
+          data-animate="fade-up"
+          data-motion-role="hero"
+          data-reveal-start="0.86"
+          data-reveal-threshold="0.34"
+        >
+          Planner
+        </h2>
         <write-key-panel></write-key-panel>
         <goal-panel></goal-panel>
         <goal-workspace-panel></goal-workspace-panel>

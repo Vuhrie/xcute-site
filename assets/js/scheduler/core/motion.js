@@ -12,6 +12,8 @@ const ROW_IN = [
 
 export function animatePanel(node) {
   if (!node) return;
+  if (node.matches?.("[data-animate]")) return;
+  if (!canAnimate()) return;
   waapi(node, PANEL_IN, {
     duration: 440,
     easing: "cubic-bezier(0.2, 0.9, 0.2, 1)",

@@ -5,7 +5,7 @@ import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel">
+  <section class="x-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.86" data-reveal-threshold="0.32">
     <h3>Goals</h3>
     <div class="x-row">
       <label>Goal title</label>

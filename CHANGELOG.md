@@ -2,6 +2,19 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.5 - 2026-03-28
+
+### Changed
+- Retuned scroll reveal timing to trigger later using per-element `data-reveal-start` and `data-reveal-threshold` gates.
+- Moved scheduler reveal orchestration from section-wrapper level to panel level so Goals, Workspace, and Full Timeline animate when each panel is actually reached.
+- Bumped runtime labels and metadata to `v0.5.5`.
+
+### Fixed
+- Fixed early-finished reveal animations caused by panel mount-time animation running before panels were visible in the viewport.
+- Fixed inconsistent planner reveal scope where one large wrapper animation did not match per-panel user scroll expectations.
+
+Rollback: `backup/v0.5.5`
+
 ## v0.5.4 - 2026-03-28
 
 ### Changed

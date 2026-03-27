@@ -3,7 +3,7 @@ import { getState, setState, setWriteKey, subscribeSelector } from "../core/stor
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel">
+  <section class="x-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.86" data-reveal-threshold="0.32">
     <h3>Write Key</h3>
     <p class="x-small">Required for adding/editing goals, tasks, and plans.</p>
     <div class="x-inline">

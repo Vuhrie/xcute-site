@@ -5,7 +5,14 @@ import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-goal-workspace" data-role="workspace">
+  <section
+    class="x-goal-workspace"
+    data-role="workspace"
+    data-animate="fade-up"
+    data-motion-role="panel"
+    data-reveal-start="0.86"
+    data-reveal-threshold="0.32"
+  >
     <h4 data-role="goal-header">Selected Goal Workspace</h4>
     <p class="x-small" data-role="goal-caption">Pick a goal to manage tasks and schedule.</p>
 

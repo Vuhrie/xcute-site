@@ -5,7 +5,7 @@ import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel x-queue-panel">
+  <section class="x-panel x-queue-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.84" data-reveal-threshold="0.3">
     <div class="x-inline x-space-between">
       <h3>Today Queue</h3>
       <p class="x-small" data-role="date"></p>
