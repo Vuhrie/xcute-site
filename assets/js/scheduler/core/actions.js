@@ -1,6 +1,9 @@
 import { api } from "./api.js";
 import { getState, setState } from "./store.js";
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DEFAULT_TIMELINE_DAYS = 30;
+
 function ensureSelectedGoal(goals) {
   const wanted = getState().selectedGoalId;
   const exists = goals.some((goal) => goal.id === wanted);
@@ -18,13 +21,29 @@ function addDays(dateIso, days) {
   return date.toISOString().slice(0, 10);
 }
 
+function selectedGoalId() {
+  return getState().selectedGoalId || "";
+}
+
+function queueDate() {
+  return getState().queueDate || todayIso();
+}
+
+function isIsoDate(value) {
+  return DATE_RE.test(String(value || "").trim());
+}
+
+async function refreshScheduler(goalId = selectedGoalId()) {
+  await Promise.all([refreshGoalData(goalId), refreshTimeline(), refreshTodayQueue()]);
+}
+
 function maxTimelineTo(from) {
-  const fallback = addDays(from, 30);
+  const fallback = addDays(from, DEFAULT_TIMELINE_DAYS);
   const goals = getState().goals || [];
   let max = fallback;
   for (const goal of goals) {
     const target = String(goal?.target_date || "").trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(target) && target > max) {
+    if (isIsoDate(target) && target > max) {
       max = target;
     }
   }
@@ -88,8 +107,7 @@ export async function bootstrapScheduler() {
   }
 
   const selectedGoalId = await refreshGoals();
-  await refreshGoalData(selectedGoalId);
-  await Promise.all([refreshTodayQueue(), refreshTimeline()]);
+  await refreshScheduler(selectedGoalId);
 }
 
 export function selectGoal(goalId) {
@@ -98,39 +116,38 @@ export function selectGoal(goalId) {
 
 export async function createGoal(payload) {
   await api.createGoal(payload);
-  const selectedGoalId = await refreshGoals();
-  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+  await refreshScheduler(await refreshGoals());
 }
 
 export async function updateGoal(payload) {
   await api.patchGoal(payload);
-  await Promise.all([refreshGoals(), refreshTimeline(), refreshTodayQueue()]);
+  await refreshGoals();
+  await refreshScheduler();
 }
 
 export async function deleteGoal(goalId) {
   const id = String(goalId || "").trim();
   if (!id) return;
   await api.deleteGoal(id);
-  const selectedGoalId = await refreshGoals();
-  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+  await refreshScheduler(await refreshGoals());
 }
 
 export async function createTask(payload) {
   await api.createTask(payload);
-  await Promise.all([refreshGoalData(payload.goal_id), refreshTimeline(), refreshTodayQueue()]);
+  await refreshScheduler(payload.goal_id);
 }
 
 export async function updateTask(payload) {
   await api.patchTask(payload);
-  await Promise.all([refreshGoalData(getState().selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+  await refreshScheduler();
 }
 
 export async function deleteTask(taskId) {
   const id = String(taskId || "").trim();
   if (!id) return;
-  const selectedGoalId = getState().selectedGoalId;
+  const goalId = selectedGoalId();
   await api.deleteTask(id);
-  await Promise.all([refreshGoalData(selectedGoalId), refreshTimeline(), refreshTodayQueue()]);
+  await refreshScheduler(goalId);
 }
 
 export async function reorderTask(taskId, direction) {
@@ -151,11 +168,11 @@ export async function reorderTask(taskId, direction) {
   }));
 
   await Promise.all(updates.map((update) => api.patchTask(update)));
-  await refreshGoalData(getState().selectedGoalId);
+  await refreshGoalData(selectedGoalId());
 }
 
 export async function spreadSelectedGoal({ startMode, targetDate }) {
-  const goalId = getState().selectedGoalId;
+  const goalId = selectedGoalId();
   if (!goalId) {
     const error = new Error("goal_required");
     error.code = "goal_required";
@@ -178,31 +195,28 @@ export async function spreadSelectedGoal({ startMode, targetDate }) {
   return result;
 }
 
-export async function queueStart(entryId = "") {
-  const result = await api.queueStart({ date: getState().queueDate || todayIso(), entry_id: entryId || null });
+async function runQueueAction(request, payload = {}, { refreshSchedulerData = false } = {}) {
+  const result = await request({ date: queueDate(), ...payload });
   applyQueueState(result);
+  if (refreshSchedulerData) await Promise.all([refreshGoalData(), refreshTimeline()]);
+}
+
+export async function queueStart(entryId = "") {
+  await runQueueAction(api.queueStart, { entry_id: entryId || null });
 }
 
 export async function queuePause() {
-  const result = await api.queuePause({ date: getState().queueDate || todayIso() });
-  applyQueueState(result);
+  await runQueueAction(api.queuePause);
 }
 
 export async function queueSkip() {
-  const result = await api.queueSkip({ date: getState().queueDate || todayIso() });
-  applyQueueState(result);
+  await runQueueAction(api.queueSkip);
 }
 
 export async function queueComplete() {
-  const result = await api.queueComplete({ date: getState().queueDate || todayIso() });
-  applyQueueState(result);
-  await Promise.all([refreshGoalData(), refreshTimeline()]);
+  await runQueueAction(api.queueComplete, {}, { refreshSchedulerData: true });
 }
 
 export async function queueAckBreak(skipBreak = false) {
-  const result = await api.queueAckBreak({
-    date: getState().queueDate || todayIso(),
-    skip_break: Boolean(skipBreak),
-  });
-  applyQueueState(result);
+  await runQueueAction(api.queueAckBreak, { skip_break: Boolean(skipBreak) });
 }

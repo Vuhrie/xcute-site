@@ -53,6 +53,7 @@ This project uses immutable backup branches and semantic versioning.
 - `backup/v0.4.1`
 - `backup/v0.4.2`
 - `backup/v0.4.3`
+- `backup/v0.4.4`
 
 ## Rollback
 

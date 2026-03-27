@@ -87,6 +87,18 @@ export class GoalPanel extends HTMLElement {
     this.unsubscribe?.();
   }
 
+  setStatus(message) {
+    this.status.textContent = message;
+  }
+
+  goalById(id) {
+    return getState().goals.find((goal) => goal.id === id) || null;
+  }
+
+  clearEditingIf(id) {
+    if (this.editingGoalId === id) this.editingGoalId = "";
+  }
+
   async onClick(event) {
     const action = event.target?.dataset?.action;
     if (!action) return;
@@ -102,7 +114,7 @@ export class GoalPanel extends HTMLElement {
           target_date: this.querySelector('[name="target_date"]').value || null,
         });
         this.querySelector('[name="title"]').value = "";
-        this.status.textContent = "Goal created.";
+        this.setStatus("Goal created.");
         return;
       }
 
@@ -111,20 +123,20 @@ export class GoalPanel extends HTMLElement {
         if (!id) return;
         selectGoal(id);
         await refreshGoalData(id);
-        this.status.textContent = "Goal selected.";
+        this.setStatus("Goal selected.");
         return;
       }
 
       if (action === "edit-start") {
         this.editingGoalId = String(event.target.dataset.id || "");
-        this.status.textContent = "Editing goal.";
+        this.setStatus("Editing goal.");
         this.render();
         return;
       }
 
       if (action === "edit-cancel") {
         this.editingGoalId = "";
-        this.status.textContent = "Edit canceled.";
+        this.setStatus("Edit canceled.");
         this.render();
         return;
       }
@@ -140,22 +152,22 @@ export class GoalPanel extends HTMLElement {
           target_date: scope.querySelector('[name="edit_target_date"]').value || null,
         });
         this.editingGoalId = "";
-        this.status.textContent = "Goal updated.";
+        this.setStatus("Goal updated.");
         return;
       }
 
       if (action === "delete") {
         const id = String(event.target.dataset.id || "");
         if (!id) return;
-        const goal = getState().goals.find((item) => item.id === id);
+        const goal = this.goalById(id);
         const approved = window.confirm(`Delete goal "${goal?.title || "this goal"}" and all linked tasks/schedule data?`);
         if (!approved) return;
         await removeGoal(id);
-        if (this.editingGoalId === id) this.editingGoalId = "";
-        this.status.textContent = "Goal deleted.";
+        this.clearEditingIf(id);
+        this.setStatus("Goal deleted.");
       }
     } catch (error) {
-      this.status.textContent = `Error: ${toUiError(error)}`;
+      this.setStatus(`Error: ${toUiError(error)}`);
     }
   }
 

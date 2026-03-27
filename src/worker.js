@@ -1047,6 +1047,14 @@ async function deleteGoalCascade(db, goalId) {
   };
 }
 
+function idFromQuery(url) {
+  return String(url.searchParams.get("id") || "").trim();
+}
+
+function queueDateFrom(raw) {
+  return asDateOrDefault(raw, todayIso());
+}
+
 async function handleApi(request, url, env) {
   const method = request.method.toUpperCase();
   const path = url.pathname;
@@ -1123,7 +1131,7 @@ async function handleApi(request, url, env) {
     }
 
     if (method === "DELETE") {
-      const id = String(url.searchParams.get("id") || "").trim();
+      const id = idFromQuery(url);
       if (!id) return json({ error: "id_required" }, 400);
       const result = await deleteGoalCascade(db, id);
       if (!result) return json({ error: "goal_not_found" }, 404);
@@ -1213,7 +1221,7 @@ async function handleApi(request, url, env) {
     }
 
     if (method === "DELETE") {
-      const id = String(url.searchParams.get("id") || "").trim();
+      const id = idFromQuery(url);
       if (!id) return json({ error: "id_required" }, 400);
       const result = await deleteTaskCascade(db, id);
       if (!result) return json({ error: "task_not_found" }, 404);
@@ -1241,40 +1249,24 @@ async function handleApi(request, url, env) {
     return json({ from: fromDate, to: safeTo, items: timeline.items, goals: timeline.goals });
   }
 
-  if (path === "/api/queue/today" && method === "GET") {
-    const dateIso = asDateOrDefault(url.searchParams.get("date"), todayIso());
-    return json(await getQueuePayload(db, dateIso));
-  }
+  if (path.startsWith("/api/queue/")) {
+    if (path === "/api/queue/today" && method === "GET") {
+      return json(await getQueuePayload(db, queueDateFrom(url.searchParams.get("date"))));
+    }
 
-  if (path === "/api/queue/start" && method === "POST") {
-    const body = await readBody(request);
-    const dateIso = asDateOrDefault(body.date, todayIso());
-    const entryId = String(body.entry_id || "").trim() || null;
-    return startQueue(db, dateIso, entryId);
-  }
+    if (method !== "POST") return json({ error: "not_found" }, 404);
 
-  if (path === "/api/queue/pause" && method === "POST") {
     const body = await readBody(request);
-    const dateIso = asDateOrDefault(body.date, todayIso());
-    return pauseQueue(db, dateIso);
-  }
+    const dateIso = queueDateFrom(body.date);
 
-  if (path === "/api/queue/skip" && method === "POST") {
-    const body = await readBody(request);
-    const dateIso = asDateOrDefault(body.date, todayIso());
-    return skipQueue(db, dateIso);
-  }
-
-  if (path === "/api/queue/complete" && method === "POST") {
-    const body = await readBody(request);
-    const dateIso = asDateOrDefault(body.date, todayIso());
-    return completeQueue(db, dateIso);
-  }
-
-  if (path === "/api/queue/break/ack" && method === "POST") {
-    const body = await readBody(request);
-    const dateIso = asDateOrDefault(body.date, todayIso());
-    return ackBreak(db, dateIso, Boolean(body.skip_break));
+    if (path === "/api/queue/start") {
+      const entryId = String(body.entry_id || "").trim() || null;
+      return startQueue(db, dateIso, entryId);
+    }
+    if (path === "/api/queue/pause") return pauseQueue(db, dateIso);
+    if (path === "/api/queue/skip") return skipQueue(db, dateIso);
+    if (path === "/api/queue/complete") return completeQueue(db, dateIso);
+    if (path === "/api/queue/break/ack") return ackBreak(db, dateIso, Boolean(body.skip_break));
   }
 
   return json({ error: "not_found" }, 404);

@@ -90,6 +90,14 @@ export class GoalWorkspacePanel extends HTMLElement {
     return goals.find((goal) => goal.id === selectedGoalId) || null;
   }
 
+  setStatus(message) {
+    this.statusNode.textContent = message;
+  }
+
+  taskById(id) {
+    return (getState().tasks || []).find((task) => task.id === id) || null;
+  }
+
   async onClick(event) {
     const action = event.target?.dataset?.action;
     if (!action) return;
@@ -97,7 +105,7 @@ export class GoalWorkspacePanel extends HTMLElement {
 
     const goal = this.currentGoal();
     if (!goal) {
-      this.statusNode.textContent = "Select a goal first.";
+      this.setStatus("Select a goal first.");
       return;
     }
 
@@ -112,7 +120,7 @@ export class GoalWorkspacePanel extends HTMLElement {
           priority_rank: (getState().tasks?.length || 0) + 1,
         });
         this.querySelector('[name="title"]').value = "";
-        this.statusNode.textContent = "Task added.";
+        this.setStatus("Task added.");
         return;
       }
 
@@ -120,7 +128,7 @@ export class GoalWorkspacePanel extends HTMLElement {
         const startMode = this.querySelector('input[name="start_mode"]:checked')?.value || "today";
         const targetDate = this.querySelector('input[name="target_date"]').value || null;
         const result = await spreadSelectedGoal({ startMode, targetDate });
-        this.statusNode.textContent = `Plan generated from ${result.start_date}${result.target_date ? ` to ${result.target_date}` : ""}.`;
+        this.setStatus(`Plan generated from ${result.start_date}${result.target_date ? ` to ${result.target_date}` : ""}.`);
         return;
       }
 
@@ -129,25 +137,25 @@ export class GoalWorkspacePanel extends HTMLElement {
 
       if (action === "up" || action === "down") {
         await reorderTask(id, action);
-        this.statusNode.textContent = "Priority updated.";
+        this.setStatus("Priority updated.");
         return;
       }
 
       if (action === "toggle") {
         await updateTask({ id, completed: event.target.dataset.value === "1" });
-        this.statusNode.textContent = "Task status updated.";
+        this.setStatus("Task status updated.");
         return;
       }
 
       if (action === "delete") {
-        const task = (getState().tasks || []).find((item) => item.id === id);
+        const task = this.taskById(id);
         const approved = window.confirm(`Delete task "${task?.title || "this task"}"?`);
         if (!approved) return;
         await removeTask(id);
-        this.statusNode.textContent = "Task deleted.";
+        this.setStatus("Task deleted.");
       }
     } catch (error) {
-      this.statusNode.textContent = `Error: ${toUiError(error)}`;
+      this.setStatus(`Error: ${toUiError(error)}`);
     }
   }
 

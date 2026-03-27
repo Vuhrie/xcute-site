@@ -6,13 +6,20 @@ import "./components/goal-panel.js";
 import "./components/goal-workspace-panel.js";
 import "./components/plan-view.js";
 
+const VERSION_RE = /^v\d+\.\d+\.\d+$/;
+const TIMELINE_POLL_MS = 15000;
+
+function safeRun(task) {
+  Promise.resolve().then(task).catch(() => {});
+}
+
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.4.3";
+  node.textContent = "Version v0.4.4";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
-    if (/^v\d+\.\d+\.\d+$/.test(text)) node.textContent = `Version ${text}`;
+    if (VERSION_RE.test(text)) node.textContent = `Version ${text}`;
   } catch {}
 }
 
@@ -20,18 +27,18 @@ let prevGoalId = "";
 subscribe((state) => {
   if (!state.selectedGoalId || state.selectedGoalId === prevGoalId) return;
   prevGoalId = state.selectedGoalId;
-  refreshGoalData(state.selectedGoalId).catch(() => {});
+  safeRun(() => refreshGoalData(state.selectedGoalId));
 });
 
 loadVersionLabel();
 bootstrapScheduler().catch((error) => console.error(error));
 
 window.addEventListener("focus", () => {
-  if (getState().selectedGoalId) refreshGoalData(getState().selectedGoalId).catch(() => {});
-  refreshTodayQueue().catch(() => {});
-  refreshTimeline().catch(() => {});
+  if (getState().selectedGoalId) safeRun(() => refreshGoalData(getState().selectedGoalId));
+  safeRun(() => refreshTodayQueue());
+  safeRun(() => refreshTimeline());
 });
 
 setInterval(() => {
-  refreshTimeline().catch(() => {});
-}, 15000);
+  safeRun(() => refreshTimeline());
+}, TIMELINE_POLL_MS);

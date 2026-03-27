@@ -82,6 +82,10 @@ export class TodayQueuePanel extends HTMLElement {
     clearInterval(this.sync);
   }
 
+  setStatus(message) {
+    this.statusNode.textContent = message;
+  }
+
   sessionKey(session) {
     if (!session) return "";
     return `${session.mode || "task"}:${session.active_entry_id || "none"}:${session.state_version || 0}`;
@@ -127,13 +131,13 @@ export class TodayQueuePanel extends HTMLElement {
     try {
       if (action === "start") {
         await queueStart();
-        this.statusNode.textContent = "Queue started.";
+        this.setStatus("Queue started.");
         return;
       }
 
       if (action === "pause") {
         await queuePause();
-        this.statusNode.textContent = "Queue paused.";
+        this.setStatus("Queue paused.");
         return;
       }
 
@@ -142,24 +146,24 @@ export class TodayQueuePanel extends HTMLElement {
           const approved = window.confirm("Skip remaining break and move on to the next task?");
           if (!approved) return;
           await queueAckBreak(true);
-          this.statusNode.textContent = "Break skipped. Next task is ready.";
+          this.setStatus("Break skipped. Next task is ready.");
           return;
         }
 
         await queueSkip();
-        this.statusNode.textContent = "Moved current task to queue end.";
+        this.setStatus("Moved current task to queue end.");
         return;
       }
 
       if (action === "complete") {
         await queueComplete();
-        this.statusNode.textContent = "Task slice completed.";
+        this.setStatus("Task slice completed.");
         return;
       }
 
       if (action === "ack-break") {
         await queueAckBreak(false);
-        this.statusNode.textContent = "Break acknowledged. Start when ready.";
+        this.setStatus("Break acknowledged. Start when ready.");
         return;
       }
 
@@ -167,10 +171,10 @@ export class TodayQueuePanel extends HTMLElement {
         const id = String(event.target.dataset.id || "");
         if (!id) return;
         await queueStart(id);
-        this.statusNode.textContent = "Queue started from selected task.";
+        this.setStatus("Queue started from selected task.");
       }
     } catch (error) {
-      this.statusNode.textContent = `Error: ${toUiError(error)}`;
+      this.setStatus(`Error: ${toUiError(error)}`);
     }
   }
 

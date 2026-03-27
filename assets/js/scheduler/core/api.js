@@ -7,11 +7,6 @@ function codeFromError(error) {
   return String(error?.code || error?.message || "request_failed");
 }
 
-export function isWriteKeyIssue(error) {
-  const code = codeFromError(error);
-  return code === "forbidden" || code === "missing_write_key" || code === "write_key_not_configured";
-}
-
 export function toUiError(error) {
   const code = codeFromError(error);
   if (code === "forbidden" || code === "missing_write_key") return WRITE_KEY_HELP;

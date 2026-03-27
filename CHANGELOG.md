@@ -2,6 +2,19 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.4.4 - 2026-03-28
+
+### Changed
+- Optimized frontend scheduler orchestration with compact shared refresh and queue-action helpers in `assets/js/scheduler/core/actions.js`.
+- Simplified scheduler component event/status plumbing to reduce duplicated control flow in goal/task/queue panels.
+- Streamlined Worker queue route handling with shared query/date helpers for lower route-branch overhead in `src/worker.js`.
+- Updated runtime labels and version metadata to `v0.4.4`.
+
+### Fixed
+- Reduced code duplication hot spots that were increasing future edit cost and maintenance complexity.
+
+Rollback: `backup/v0.4.4`
+
 ## v0.4.3 - 2026-03-28
 
 ### Added
