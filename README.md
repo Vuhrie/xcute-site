@@ -2,7 +2,7 @@
 
 XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
 
-## What is in v0.5.2
+## What is in v0.5.3
 
 - Full-site cinematic motion system (hybrid CSS + WAAPI) across Hub and Scheduler
 - Motion contract via `html[data-motion-mode="on"]` + reusable `data-animate` / `data-motion-role` hooks
@@ -13,6 +13,7 @@ XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-fir
 - Scheduler render stability patch: queue/timeline/workspace panels now use slice-based subscriptions + signature guards to avoid popping/replay on unchanged polling data
 - Queue/timeline/goals/workspace state transitions unified through shared scheduler motion helpers
 - Primary purple buttons now use a stronger right-to-left vertical wavy sweep animation
+- Scheduler layout is tighter so Planner appears sooner, with Today Queue list capped to internal scroll
 - Mobile animation caps + reduced-motion compliance preserved
 - Existing scheduler logic/API behavior unchanged from v0.4.4
 

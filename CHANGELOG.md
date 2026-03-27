@@ -2,6 +2,18 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.3 - 2026-03-28
+
+### Changed
+- Reduced scheduler vertical spacing and hero height so Planner appears sooner on initial scroll.
+- Added an internal scroll container for Today Queue items, preventing the queue list from pushing Planner too far down.
+- Bumped runtime labels and metadata to `v0.5.3`.
+
+### Fixed
+- Fixed excessive scroll distance required to reach the Planner section on `/scheduler`.
+
+Rollback: `backup/v0.5.3`
+
 ## v0.5.2 - 2026-03-28
 
 ### Changed
