@@ -1,4 +1,4 @@
-const FALLBACK_VERSION = "v0.5.3";
+const FALLBACK_VERSION = "v0.5.4";
 const VERSION_PATTERN = /^v\d+\.\d+\.\d+$/;
 
 async function loadVersionFromFile() {
@@ -40,6 +40,7 @@ export function initVersionBadge() {
     applyVersion(badge, versionFromFile);
   });
 }
+
 
 
 

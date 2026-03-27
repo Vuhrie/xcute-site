@@ -2,6 +2,17 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.5.4 - 2026-03-28
+
+### Changed
+- Updated scroll reveal behavior to be section-based visibility instead of one-time reveal: animated sections now hide again when leaving viewport and re-appear when re-entering.
+- Bumped runtime labels and metadata to `v0.5.4`.
+
+### Fixed
+- Fixed confusing behavior where animated sections stayed visible permanently after first scroll reveal.
+
+Rollback: `backup/v0.5.4`
+
 ## v0.5.3 - 2026-03-28
 
 ### Changed

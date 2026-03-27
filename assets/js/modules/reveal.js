@@ -1,7 +1,5 @@
 import { canAnimate, waapi } from "./motion-utils.js";
 
-const MAX_MOBILE_ANIMATIONS = 18;
-
 function intAttr(node, name, fallback = 0) {
   const value = Number.parseInt(node.dataset[name] || `${fallback}`, 10);
   return Number.isNaN(value) ? fallback : value;
@@ -31,40 +29,61 @@ function keyframesFor(kind) {
   ];
 }
 
-function revealImmediate(node) {
-  node.classList.add("is-visible");
-  node.style.removeProperty("--delay");
-}
-
-function revealAnimated(node, order) {
-  const delay = intAttr(node, "delay") + intAttr(node, "stagger") * order;
-  const { duration, easing } = timingFor(node);
-  const animation = waapi(node, keyframesFor(node.dataset.animate || "fade-up"), {
-    duration,
-    delay,
-    easing,
-    fill: "forwards",
-  });
-  if (!animation) {
-    revealImmediate(node);
-    return;
-  }
-  node.style.setProperty("--delay", `${delay}ms`);
-  animation.onfinish = () => node.classList.add("is-visible");
-}
-
-function isMobileCapReached(animatedCount) {
-  if (!window.matchMedia("(max-width: 820px)").matches) return false;
-  return animatedCount >= MAX_MOBILE_ANIMATIONS;
+function inViewport(node) {
+  const rect = node.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  return rect.top < vh * 0.9 && rect.bottom > vh * 0.1;
 }
 
 export function initReveal({ reducedMotion = false } = {}) {
   const nodes = Array.from(document.querySelectorAll("[data-animate]"));
   if (!nodes.length) return { setReducedMotion() {}, dispose() {} };
 
+  const runningByNode = new WeakMap();
   let observer = null;
-  let animatedCount = 0;
-  let order = 0;
+  let revealOrder = 0;
+
+  const cancelRunning = (node) => {
+    const running = runningByNode.get(node);
+    if (!running) return;
+    try {
+      running.cancel();
+    } catch {}
+    runningByNode.delete(node);
+  };
+
+  const hideNode = (node) => {
+    cancelRunning(node);
+    node.classList.remove("is-visible");
+    node.style.removeProperty("--delay");
+  };
+
+  const revealImmediate = (node) => {
+    cancelRunning(node);
+    node.classList.add("is-visible");
+    node.style.removeProperty("--delay");
+  };
+
+  const revealAnimated = (node, order) => {
+    const delay = intAttr(node, "delay") + intAttr(node, "stagger") * order;
+    const { duration, easing } = timingFor(node);
+    const animation = waapi(node, keyframesFor(node.dataset.animate || "fade-up"), {
+      duration,
+      delay,
+      easing,
+      fill: "forwards",
+    });
+    if (!animation) {
+      revealImmediate(node);
+      return;
+    }
+    node.style.setProperty("--delay", `${delay}ms`);
+    runningByNode.set(node, animation);
+    animation.onfinish = () => {
+      if (runningByNode.get(node) === animation) runningByNode.delete(node);
+      node.classList.add("is-visible");
+    };
+  };
 
   const stop = () => {
     if (!observer) return;
@@ -72,48 +91,59 @@ export function initReveal({ reducedMotion = false } = {}) {
     observer = null;
   };
 
-  const showAllNow = () => {
-    stop();
-    nodes.forEach((node) => revealImmediate(node));
-  };
-
   const observe = () => {
     stop();
     observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
           const node = entry.target;
-          observer.unobserve(node);
-          if (!canAnimate() || isMobileCapReached(animatedCount)) {
-            revealImmediate(node);
-            animatedCount += 1;
+          if (entry.isIntersecting) {
+            if (node.classList.contains("is-visible")) return;
+            if (!canAnimate()) {
+              revealImmediate(node);
+              return;
+            }
+            revealAnimated(node, revealOrder);
+            revealOrder += 1;
             return;
           }
-          revealAnimated(node, order);
-          order += 1;
-          animatedCount += 1;
+          hideNode(node);
         });
       },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.14 }
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.1 }
     );
     nodes.forEach((node) => observer.observe(node));
   };
 
   const setReducedMotion = (next) => {
     if (next) {
-      showAllNow();
+      stop();
+      nodes.forEach((node) => revealImmediate(node));
       return;
     }
-    animatedCount = 0;
-    order = 0;
+
+    revealOrder = 0;
     nodes.forEach((node) => {
-      node.classList.remove("is-visible");
-      node.style.removeProperty("--delay");
+      if (inViewport(node)) {
+        if (!canAnimate()) revealImmediate(node);
+        else {
+          hideNode(node);
+          revealAnimated(node, revealOrder);
+          revealOrder += 1;
+        }
+        return;
+      }
+      hideNode(node);
     });
     observe();
   };
 
   setReducedMotion(reducedMotion);
-  return { setReducedMotion, dispose: stop };
+  return {
+    setReducedMotion,
+    dispose() {
+      stop();
+      nodes.forEach((node) => cancelRunning(node));
+    },
+  };
 }

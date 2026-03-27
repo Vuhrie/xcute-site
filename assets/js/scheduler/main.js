@@ -28,7 +28,7 @@ function safeRun(task) {
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.5.3";
+  node.textContent = "Version v0.5.4";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
     if (VERSION_RE.test(text)) node.textContent = `Version ${text}`;
@@ -59,4 +59,5 @@ window.addEventListener("focus", () => {
 setInterval(() => {
   safeRun(() => refreshTimeline());
 }, TIMELINE_POLL_MS);
+
 
