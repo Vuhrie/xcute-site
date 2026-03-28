@@ -2,6 +2,29 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.6.0 - 2026-03-28
+
+### Added
+- Added goal importance field (`weight_level`) with three levels: `low`, `medium`, `high`.
+- Added rollover API `POST /api/rollover/app-open` with once-per-day processing, summary banner data, and conflict reporting.
+- Added analytics APIs `GET /api/analytics/day` and `GET /api/analytics/range` backed by queue event + rollout metrics.
+- Added queue reorder API `POST /api/queue/reorder` for pending-only manual ordering.
+- Added analytics UI panel with planned/completed trends, queue efficiency, goal risk, and rollover load.
+- Added D1 migration `0005_planner_queue_v060.sql`.
+
+### Changed
+- Removed decorative/reveal/cinematic animation bootstraps from hub and scheduler; kept lightweight interaction feedback only.
+- Updated Today Queue UX to a today-first list plus sticky mini-player controls.
+- Updated spread/overflow behavior to persist hard-deadline conflicts with `reason: deadline_blocked`.
+- Extended timeline payload/UI with unscheduled conflict rows and goal weight context.
+- Bumped runtime labels and metadata to `v0.6.0`.
+
+### Fixed
+- Fixed planner state visibility gaps by showing rollover outcomes and unscheduled conflicts directly in scheduler UI.
+- Fixed missing contract coverage for deep analytics by persisting queue action events and exposing daily/range aggregates.
+
+Rollback: `backup/v0.6.0`
+
 ## v0.5.5 - 2026-03-28
 
 ### Changed

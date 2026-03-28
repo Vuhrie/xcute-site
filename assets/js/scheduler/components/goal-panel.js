@@ -5,7 +5,7 @@ import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.86" data-reveal-threshold="0.32">
+  <section class="x-panel">
     <h3>Goals</h3>
     <div class="x-row">
       <label>Goal title</label>
@@ -20,17 +20,33 @@ template.innerHTML = `
         <label>Target date (optional)</label>
         <input type="date" name="target_date" />
       </div>
+      <div class="x-row x-grow">
+        <label>Importance</label>
+        <select name="weight_level">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
       <button class="c-btn" data-action="create">Add Goal</button>
     </div>
 
     <div class="x-list" data-role="goals"></div>
+    <goal-workspace-panel class="x-goal-workspace-shell"></goal-workspace-panel>
     <p class="x-small" data-role="status"></p>
   </section>
 `;
 
+function formatWeight(level) {
+  const normalized = String(level || "medium").toLowerCase();
+  if (normalized === "high") return "High";
+  if (normalized === "low") return "Low";
+  return "Medium";
+}
+
 function goalMeta(goal) {
   const target = goal.target_date ? `Target: ${goal.target_date}` : "Daily";
-  return `${goal.daily_hours}h/day | ${target}`;
+  return `${goal.daily_hours}h/day | ${target} | ${formatWeight(goal.weight_level)}`;
 }
 
 function cardMarkup(goal, selectedGoalId, editingGoalId) {
@@ -62,6 +78,14 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
           <label>Target date (optional)</label>
           <input type="date" name="edit_target_date" value="${goal.target_date || ""}" />
         </div>
+        <div class="x-row x-grow">
+          <label>Importance</label>
+          <select name="edit_weight_level">
+            <option value="low" ${goal.weight_level === "low" ? "selected" : ""}>Low</option>
+            <option value="medium" ${goal.weight_level === "medium" ? "selected" : ""}>Medium</option>
+            <option value="high" ${goal.weight_level === "high" ? "selected" : ""}>High</option>
+          </select>
+        </div>
       </div>
       <div class="x-inline">
         <button class="c-btn" data-action="edit-save" data-id="${goal.id}">Save</button>
@@ -75,7 +99,9 @@ function cardMarkup(goal, selectedGoalId, editingGoalId) {
 
 function goalsSig(goals) {
   if (!Array.isArray(goals) || !goals.length) return "none";
-  return goals.map((goal) => `${goal.id || ""}:${goal.title || ""}:${goal.daily_hours || 0}:${goal.target_date || ""}`).join("|");
+  return goals
+    .map((goal) => `${goal.id || ""}:${goal.title || ""}:${goal.daily_hours || 0}:${goal.target_date || ""}:${goal.weight_level || "medium"}`)
+    .join("|");
 }
 
 function selectGoalsSlice(state) {
@@ -140,6 +166,7 @@ export class GoalPanel extends HTMLElement {
           title,
           daily_hours: Number.parseInt(this.querySelector('[name="daily_hours"]').value, 10) || 2,
           target_date: this.querySelector('[name="target_date"]').value || null,
+          weight_level: this.querySelector('[name="weight_level"]').value || "medium",
         });
         this.querySelector('[name="title"]').value = "";
         this.setStatus("Goal created.");
@@ -180,6 +207,7 @@ export class GoalPanel extends HTMLElement {
           id,
           daily_hours: Number.parseInt(scope.querySelector('[name="edit_daily_hours"]').value, 10) || 2,
           target_date: scope.querySelector('[name="edit_target_date"]').value || null,
+          weight_level: scope.querySelector('[name="edit_weight_level"]').value || "medium",
         });
         this.editingGoalId = "";
         this.setStatus("Goal updated.");
@@ -210,7 +238,7 @@ export class GoalPanel extends HTMLElement {
       this.editingGoalId = "";
     }
     this.goalList.innerHTML = goals.map((goal) => cardMarkup(goal, selectedGoalId, this.editingGoalId)).join("");
-    animateRows(this.goalList, ".x-goal-row", 36);
+    animateRows(this.goalList, ".x-goal-row", 0);
   }
 }
 

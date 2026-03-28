@@ -11,6 +11,7 @@ export function toUiError(error) {
   const code = codeFromError(error);
   if (code === "forbidden" || code === "missing_write_key") return WRITE_KEY_HELP;
   if (code === "write_key_not_configured") return SERVER_KEY_HELP;
+  if (code === "active_item_locked") return "Active queue item cannot be reordered.";
   if (code === "request_failed") return "Request failed. Please try again.";
   return code.replaceAll("_", " ");
 }
@@ -68,10 +69,15 @@ export const api = {
   getGoalSchedule: (goalId) => call(`/api/schedule/goal?goal_id=${encodeURIComponent(goalId || "")}`),
   getTimeline: ({ from, to } = {}) =>
     call(`/api/schedule/timeline?from=${encodeURIComponent(from || "")}&to=${encodeURIComponent(to || "")}`),
+  rolloverAppOpen: (payload) => call("/api/rollover/app-open", { method: "POST", body: payload }),
+  getAnalyticsDay: (date) => call(`/api/analytics/day?date=${encodeURIComponent(date || "")}`),
+  getAnalyticsRange: ({ from, to } = {}) =>
+    call(`/api/analytics/range?from=${encodeURIComponent(from || "")}&to=${encodeURIComponent(to || "")}`),
   getTodayQueue: (date) => call(`/api/queue/today?date=${encodeURIComponent(date || "")}`),
   queueStart: (payload) => call("/api/queue/start", { method: "POST", body: payload }),
   queuePause: (payload) => call("/api/queue/pause", { method: "POST", body: payload }),
   queueSkip: (payload) => call("/api/queue/skip", { method: "POST", body: payload }),
+  queueReorder: (payload) => call("/api/queue/reorder", { method: "POST", body: payload }),
   queueComplete: (payload) => call("/api/queue/complete", { method: "POST", body: payload }),
   queueAckBreak: (payload) => call("/api/queue/break/ack", { method: "POST", body: payload }),
 };

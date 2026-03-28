@@ -1,16 +1,22 @@
-import { queueAckBreak, queueComplete, queuePause, queueSkip, queueStart, refreshTodayQueue } from "../core/actions.js";
+import { queueAckBreak, queueComplete, queuePause, queueReorder, queueSkip, queueStart, refreshTodayQueue } from "../core/actions.js";
 import { toUiError } from "../core/api.js";
 import { animatePanel, animateRows, animateStateBump } from "../core/motion.js";
 import { getState, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel x-queue-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.84" data-reveal-threshold="0.3">
+  <section class="x-panel x-queue-panel">
     <div class="x-inline x-space-between">
       <h3>Today Queue</h3>
       <p class="x-small" data-role="date"></p>
     </div>
-    <div class="x-queue-now" data-role="now">
+    <div class="x-inline">
+      <button class="c-btn c-btn--muted" data-action="notify">Enable Notifications</button>
+      <span class="x-small" data-role="notify-status">Notifications off</span>
+    </div>
+    <p class="x-small x-rollover-banner" data-role="rollover-banner"></p>
+    <div class="x-list" data-role="queue"></div>
+    <div class="x-queue-mini" data-role="mini">
       <strong data-role="now-title">No active task yet.</strong>
       <div class="x-inline x-space-between">
         <span class="x-small" data-role="countdown">--:--</span>
@@ -20,15 +26,14 @@ template.innerHTML = `
       <div class="x-progress">
         <div class="x-progress__bar" data-role="bar"></div>
       </div>
+      <div class="x-inline">
+        <button class="c-btn" data-action="start">Start</button>
+        <button class="c-btn c-btn--muted" data-action="pause">Pause</button>
+        <button class="c-btn c-btn--muted" data-action="skip">Skip</button>
+        <button class="c-btn" data-action="complete">Complete</button>
+        <button class="c-btn c-btn--muted" data-action="ack-break">Continue After Break</button>
+      </div>
     </div>
-    <div class="x-inline">
-      <button class="c-btn" data-action="start">Start</button>
-      <button class="c-btn c-btn--muted" data-action="pause">Pause</button>
-      <button class="c-btn c-btn--muted" data-action="skip">Skip</button>
-      <button class="c-btn" data-action="complete">Complete</button>
-      <button class="c-btn c-btn--muted" data-action="ack-break">Continue After Break</button>
-    </div>
-    <div class="x-list" data-role="queue"></div>
     <p class="x-small" data-role="status"></p>
   </section>
 `;
@@ -46,13 +51,18 @@ function queueRow(item, activeEntryId, mode, running) {
   const active = item.entry_id === activeEntryId && mode === "task";
   const itemClass = active ? "x-item is-active" : "x-item";
   const status = active ? (running ? "running" : "paused") : item.status;
+  const canReorder = !active && status === "pending";
   return `<article class="${itemClass} x-queue-item">
     <div class="x-inline x-space-between">
       <div>
         <strong>${item.title}</strong>
         <div class="x-small">${item.goal_title} | ${Math.max(1, Math.round((item.minutes_allocated || 0) * 10) / 10)}m | ${status}</div>
       </div>
-      <button class="c-btn c-btn--muted" data-action="start-entry" data-id="${item.entry_id}">Play</button>
+      <div class="x-inline">
+        <button class="c-btn c-btn--muted" data-action="start-entry" data-id="${item.entry_id}">Play</button>
+        <button class="c-btn c-btn--muted" data-action="reorder-up" data-id="${item.entry_id}" ${canReorder ? "" : "disabled"}>Up</button>
+        <button class="c-btn c-btn--muted" data-action="reorder-down" data-id="${item.entry_id}" ${canReorder ? "" : "disabled"}>Down</button>
+      </div>
     </div>
   </article>`;
 }
@@ -79,6 +89,7 @@ function selectQueueSlice(state) {
     queueDate: state.queueDate || "",
     queueItems: state.queueItems || [],
     queueSession: state.queueSession || null,
+    rolloverBanner: state.rolloverBanner || "",
     itemsSig: queueItemsSig(state.queueItems),
     sessionSig: queueSessionSig(state.queueSession),
   };
@@ -86,7 +97,7 @@ function selectQueueSlice(state) {
 
 function sameQueueSlice(a, b) {
   if (!a || !b) return false;
-  return a.queueDate === b.queueDate && a.itemsSig === b.itemsSig && a.sessionSig === b.sessionSig;
+  return a.queueDate === b.queueDate && a.itemsSig === b.itemsSig && a.sessionSig === b.sessionSig && a.rolloverBanner === b.rolloverBanner;
 }
 
 export class TodayQueuePanel extends HTMLElement {
@@ -101,12 +112,16 @@ export class TodayQueuePanel extends HTMLElement {
     this.queueNode = this.querySelector('[data-role="queue"]');
     this.statusNode = this.querySelector('[data-role="status"]');
     this.skipButton = this.querySelector('[data-action="skip"]');
-    this.nowNode = this.querySelector('[data-role="now"]');
+    this.nowNode = this.querySelector('[data-role="mini"]');
+    this.notifyStatusNode = this.querySelector('[data-role="notify-status"]');
+    this.rolloverBannerNode = this.querySelector('[data-role="rollover-banner"]');
     animatePanel(this.querySelector(".x-panel"));
     this.localClock = null;
     this.slice = selectQueueSlice(getState());
     this.lastQueueSig = "";
     this.lastSessionSig = "";
+    this.promptedBreakVersion = "";
+    this.lastNotifiedKey = "";
     this.addEventListener("click", (event) => this.onClick(event));
     this.unsubscribe = subscribeSelector(
       selectQueueSlice,
@@ -166,6 +181,34 @@ export class TodayQueuePanel extends HTMLElement {
     return corrected;
   }
 
+  async ensureNotificationPermission() {
+    if (typeof Notification === "undefined") {
+      this.notifyStatusNode.textContent = "Browser notifications unsupported.";
+      return false;
+    }
+    if (Notification.permission === "granted") {
+      this.notifyStatusNode.textContent = "Notifications on";
+      return true;
+    }
+    if (Notification.permission === "denied") {
+      this.notifyStatusNode.textContent = "Notifications blocked in browser.";
+      return false;
+    }
+    const permission = await Notification.requestPermission();
+    this.notifyStatusNode.textContent = permission === "granted" ? "Notifications on" : "Notifications denied";
+    return permission === "granted";
+  }
+
+  notify(title, body, dedupeKey) {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    if (this.lastNotifiedKey === dedupeKey) return;
+    this.lastNotifiedKey = dedupeKey;
+    try {
+      new Notification(title, { body });
+    } catch {}
+  }
+
   async onClick(event) {
     const action = event.target?.dataset?.action;
     if (!action) return;
@@ -174,6 +217,11 @@ export class TodayQueuePanel extends HTMLElement {
     const session = this.slice?.queueSession || null;
 
     try {
+      if (action === "notify") {
+        await this.ensureNotificationPermission();
+        return;
+      }
+
       if (action === "start") {
         await queueStart();
         this.setStatus("Queue started.");
@@ -224,33 +272,62 @@ export class TodayQueuePanel extends HTMLElement {
         await queueStart(id);
         this.setStatus("Queue started from selected task.");
         animateStateBump(this.nowNode);
+        return;
+      }
+
+      if (action === "reorder-up" || action === "reorder-down") {
+        const id = String(event.target.dataset.id || "");
+        if (!id) return;
+        await queueReorder(id, action === "reorder-up" ? "up" : "down");
+        this.setStatus("Queue order updated.");
       }
     } catch (error) {
       this.setStatus(`Error: ${toUiError(error)}`);
     }
   }
 
+  maybePromptBreakStart(session, remaining, activeTask) {
+    if (session?.mode !== "break" || remaining > 0) return;
+    const key = `${session.state_version || 0}:${session.active_entry_id || "none"}`;
+    if (this.promptedBreakVersion === key) return;
+    this.promptedBreakVersion = key;
+
+    const shouldStart = window.confirm("Break finished. Start the next task now?");
+    if (shouldStart) {
+      queueAckBreak(false)
+        .then(() => queueStart())
+        .then(() => this.setStatus(`Started next task: ${activeTask?.title || "task"}.`))
+        .catch((error) => this.setStatus(`Error: ${toUiError(error)}`));
+      return;
+    }
+
+    queueAckBreak(false)
+      .then(() => this.setStatus("Break finished. Next task is ready when you are."))
+      .catch((error) => this.setStatus(`Error: ${toUiError(error)}`));
+  }
+
   renderNowOnly() {
     const queueItems = this.slice?.queueItems || [];
     const session = this.slice?.queueSession || null;
     const activeTask = queueItems.find((item) => item.entry_id === session?.active_entry_id) || null;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
     this.skipButton.textContent = session?.mode === "break" ? "Skip Break" : "Skip";
+    if (typeof Notification !== "undefined") {
+      this.notifyStatusNode.textContent = Notification.permission === "granted" ? "Notifications on" : "Notifications off";
+    }
 
     if (!session || !activeTask) {
       if (session?.mode === "break") {
         const rem = this.currentRemaining(session);
         this.nowTitleNode.textContent = "Break Time";
         this.countdownNode.textContent = formatClock(rem);
-        this.metaNode.textContent = rem > 0 ? "Auto-running break" : "Break finished. Tap Continue.";
+        this.metaNode.textContent = rem > 0 ? "Auto-running break" : "Break finished. Waiting for your choice.";
         const total = Math.max(1, Number.parseInt(session.break_sec, 10) || 1);
         const ratio = Math.min(1, Math.max(0, 1 - rem / total));
         this.progressTextNode.textContent = `Progress: ${Math.round(ratio * 100)}%`;
         this.barNode.style.transform = `scaleX(${ratio})`;
-        if (!reduceMotion) this.barNode.classList.add("is-running");
-        else this.barNode.classList.remove("is-running");
-        this.barNode.classList.remove("is-paused");
+        this.maybePromptBreakStart(session, rem, activeTask);
+        this.notify("Break Finished", "Your next task is ready to start.", `break:${session.state_version || 0}`);
         return;
       }
 
@@ -259,7 +336,6 @@ export class TodayQueuePanel extends HTMLElement {
       this.metaNode.textContent = "Start to begin";
       this.progressTextNode.textContent = "Progress: --";
       this.barNode.style.transform = "scaleX(0)";
-      this.barNode.classList.remove("is-running", "is-paused");
       return;
     }
 
@@ -273,18 +349,14 @@ export class TodayQueuePanel extends HTMLElement {
     this.progressTextNode.textContent = `${formatClock(elapsed)} / ${formatClock(total)} (${Math.round(ratio * 100)}%)`;
     this.barNode.style.transform = `scaleX(${ratio})`;
 
-    if (session.running && !reduceMotion) {
-      this.barNode.classList.add("is-running");
-      this.barNode.classList.remove("is-paused");
-    } else {
-      this.barNode.classList.remove("is-running");
-      if (session.mode === "task" && rem > 0) this.barNode.classList.add("is-paused");
-      else this.barNode.classList.remove("is-paused");
+    if (session.running) {
+      this.notify("Task Running", `${activeTask.title} is in progress.`, `run:${activeTask.entry_id}:${session.state_version || 0}`);
     }
   }
 
   render(slice = this.slice || selectQueueSlice(getState())) {
     this.dateNode.textContent = slice.queueDate || "";
+    this.rolloverBannerNode.textContent = slice.rolloverBanner || "";
 
     if (this.lastQueueSig !== slice.itemsSig || this.lastSessionSig !== slice.sessionSig) {
       if (!slice.queueItems.length) {
@@ -301,7 +373,7 @@ export class TodayQueuePanel extends HTMLElement {
           )
           .join("");
       }
-      animateRows(this.queueNode, ".x-queue-item", 34);
+      animateRows(this.queueNode, ".x-queue-item", 0);
       this.lastQueueSig = slice.itemsSig;
       this.lastSessionSig = slice.sessionSig;
     }

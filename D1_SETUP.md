@@ -53,6 +53,7 @@ For existing installs, ensure these migrations are applied:
 
 - `migrations/0003_schedule_overhead_v031.sql`
 - `migrations/0004_queue_runtime_v040.sql`
+- `migrations/0005_planner_queue_v060.sql`
 
 ## 5. Deploy
 
@@ -70,4 +71,5 @@ npx wrangler versions upload
 3. Save your write key in the **Write Key** panel
 4. Create a goal, add tasks, run **Generate Plan**
 5. Verify **Today Queue** controls work (`Start`, `Pause`, `Skip`, `Complete`)
-6. Refresh page and confirm queue/timeline state persists
+6. Confirm `/api/rollover/app-open`, `/api/analytics/day`, `/api/analytics/range` return valid JSON
+7. Refresh page and confirm queue/timeline/analytics state persists

@@ -3,13 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      (() => {
-        const reduced = typeof document.documentElement.animate !== "function" || typeof window.IntersectionObserver !== "function";
-        document.documentElement.dataset.motionMode = "on";
-        document.documentElement.dataset.reducedMotion = reduced ? "true" : "false";
-      })();
-    </script>
     <title>XCute | Scheduler</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +13,6 @@
     <link rel="stylesheet" href="./assets/css/tokens.css" />
     <link rel="stylesheet" href="./assets/css/base.css" />
     <link rel="stylesheet" href="./assets/css/components.css" />
-    <link rel="stylesheet" href="./assets/css/animations.css" />
     <link rel="stylesheet" href="./assets/css/scheduler.css" />
     <script type="module" src="./assets/js/scheduler/main.js"></script>
   </head>
@@ -29,11 +21,11 @@
     <div class="bg-orb bg-orb--right" aria-hidden="true"></div>
 
     <main class="l-page l-scheduler-page">
-      <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title" data-animate="zoom-in" data-motion-role="hero" data-tilt>
-        <a href="/" class="c-kicker" data-motion-role="chip">Back To Hub</a>
-        <p class="c-version-badge" id="scheduler-version" data-motion-role="chip">Version v0.5.5</p>
-        <h1 id="scheduler-title" class="c-hero__title" data-motion-role="hero">Goal Scheduler</h1>
-        <p class="c-hero__subtitle" data-motion-role="panel">Open the site and instantly see today's queue, then manage goal tasks in one workspace.</p>
+      <section class="c-hero c-scheduler-hero" aria-labelledby="scheduler-title">
+        <a href="/" class="c-kicker">Back To Hub</a>
+        <p class="c-version-badge" id="scheduler-version">Version v0.6.0</p>
+        <h1 id="scheduler-title" class="c-hero__title">Goal Scheduler</h1>
+        <p class="c-hero__subtitle">Today-first queue, hard-deadline planning, and deep analytics.</p>
       </section>
 
       <section class="c-section" aria-label="today-queue">
@@ -41,20 +33,11 @@
       </section>
 
       <section class="c-section c-scheduler-grid" aria-labelledby="planner-title">
-        <h2
-          id="planner-title"
-          class="c-section__title"
-          data-animate="fade-up"
-          data-motion-role="hero"
-          data-reveal-start="0.86"
-          data-reveal-threshold="0.34"
-        >
-          Planner
-        </h2>
+        <h2 id="planner-title" class="c-section__title">Planner</h2>
         <write-key-panel></write-key-panel>
         <goal-panel></goal-panel>
-        <goal-workspace-panel></goal-workspace-panel>
         <plan-view></plan-view>
+        <analytics-panel></analytics-panel>
       </section>
     </main>
   </body>

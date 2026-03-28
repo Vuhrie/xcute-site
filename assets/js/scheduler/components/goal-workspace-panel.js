@@ -8,10 +8,6 @@ template.innerHTML = `
   <section
     class="x-goal-workspace"
     data-role="workspace"
-    data-animate="fade-up"
-    data-motion-role="panel"
-    data-reveal-start="0.86"
-    data-reveal-threshold="0.32"
   >
     <h4 data-role="goal-header">Selected Goal Workspace</h4>
     <p class="x-small" data-role="goal-caption">Pick a goal to manage tasks and schedule.</p>
@@ -226,7 +222,8 @@ export class GoalWorkspacePanel extends HTMLElement {
 
     this.headerNode.textContent = `Workspace For: ${goal.title}`;
     const targetLabel = goal.target_date ? `Target: ${goal.target_date}` : "Daily";
-    this.captionNode.textContent = `${goal.daily_hours}h/day | ${targetLabel}`;
+    const weightLabel = String(goal.weight_level || "medium").replace(/^./, (char) => char.toUpperCase());
+    this.captionNode.textContent = `${goal.daily_hours}h/day | ${targetLabel} | ${weightLabel} importance`;
 
     if (!tasks.length) {
       this.tasksNode.innerHTML = `<article class="x-item x-small">No tasks yet for this goal.</article>`;

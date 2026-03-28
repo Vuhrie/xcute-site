@@ -8,7 +8,7 @@
 }
 
 .l-scheduler-page .c-section {
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .c-scheduler-grid {
@@ -24,29 +24,24 @@ write-key-panel,
 goal-panel,
 goal-workspace-panel,
 plan-view,
+analytics-panel,
 today-queue-panel {
   display: block;
 }
 
 .x-panel {
-  padding: var(--space-6);
+  padding: var(--space-5);
   background: linear-gradient(160deg, rgba(28, 22, 46, 0.9), rgba(19, 15, 34, 0.86));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   display: grid;
   gap: var(--space-3);
-  backdrop-filter: blur(2px);
-}
-
-.x-panel:hover {
-  transform: translate3d(0, -2px, 0);
-  border-color: rgba(168, 85, 247, 0.42);
 }
 
 .x-panel h3 {
   font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   margin-bottom: var(--space-1);
 }
 
@@ -77,15 +72,6 @@ today-queue-panel {
   color: var(--text);
   background: rgba(12, 10, 21, 0.76);
   padding: 0.62rem 0.72rem;
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
-}
-
-.x-row input:focus,
-.x-row select:focus,
-.x-row textarea:focus,
-.x-inline input:focus {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
 }
 
 .x-inline {
@@ -116,8 +102,10 @@ today-queue-panel {
   box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.3) inset;
 }
 
-.x-item.is-complete {
+.x-item.is-complete,
+.x-timeline-row.is-done {
   opacity: 0.72;
+  text-decoration: line-through;
 }
 
 .x-goal-card {
@@ -131,21 +119,12 @@ today-queue-panel {
   inset: 0 auto 0 0;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #22d3ee, #a855f7, #ec4899);
+  background: linear-gradient(180deg, #22d3ee, #a855f7);
   opacity: 0;
-  transform: scaleY(0.2);
-  transform-origin: center top;
-  transition: opacity 220ms ease, transform 220ms ease;
 }
 
 .x-goal-card.is-selected::before {
   opacity: 1;
-  transform: scaleY(1);
-}
-
-.x-goal-card.is-selected {
-  border-color: rgba(34, 211, 238, 0.56);
-  background: linear-gradient(150deg, rgba(40, 28, 63, 0.82), rgba(17, 12, 34, 0.88));
 }
 
 .x-selected-tag {
@@ -167,40 +146,27 @@ today-queue-panel {
   gap: var(--space-3);
 }
 
+.x-goal-workspace-shell {
+  display: block;
+  margin-top: var(--space-3);
+}
+
 .x-goal-workspace {
   display: grid;
   gap: var(--space-3);
-  background: linear-gradient(155deg, rgba(46, 24, 72, 0.45), rgba(14, 12, 28, 0.25));
+  background: rgba(31, 20, 50, 0.62);
   border: 1px solid rgba(168, 85, 247, 0.35);
   border-radius: var(--radius-sm);
   padding: var(--space-4);
-  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.2);
-  transform-origin: top center;
-}
-
-.x-goal-workspace.is-open {
-  animation: xWorkspaceOpen var(--dur-mid) var(--ease-cinematic) both;
-}
-
-@keyframes xWorkspaceOpen {
-  from {
-    opacity: 0.48;
-    transform: translate3d(0, 8px, 0) scale(0.995);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
 }
 
 .x-goal-workspace h4 {
   font-family: var(--font-heading);
-  font-size: 1.18rem;
+  font-size: 1.12rem;
 }
 
 .x-workspace-title {
   font-size: 0.92rem;
-  letter-spacing: 0.02em;
   color: #d6c6ff;
   margin: 0;
 }
@@ -221,11 +187,11 @@ today-queue-panel {
 }
 
 .x-queue-panel {
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .x-queue-panel [data-role="queue"] {
-  max-height: clamp(9.5rem, 33vh, 15rem);
+  max-height: clamp(12rem, 44vh, 23rem);
   overflow-y: auto;
   padding-right: 0.28rem;
   align-content: start;
@@ -240,26 +206,16 @@ today-queue-panel {
   border-radius: 999px;
 }
 
-.x-queue-now {
+.x-queue-mini {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 5;
   display: grid;
   gap: var(--space-2);
   border: 1px solid rgba(168, 85, 247, 0.35);
-  background: linear-gradient(135deg, rgba(62, 26, 96, 0.52), rgba(17, 12, 34, 0.75));
+  background: linear-gradient(135deg, rgba(41, 26, 67, 0.92), rgba(17, 12, 34, 0.96));
   border-radius: var(--radius-sm);
-  padding: var(--space-4);
-  position: relative;
-  overflow: hidden;
-}
-
-.x-queue-now::after {
-  content: "";
-  position: absolute;
-  inset: -70% -20% auto;
-  height: 180%;
-  background: linear-gradient(120deg, rgba(34, 211, 238, 0.09), rgba(168, 85, 247, 0.14), rgba(236, 72, 153, 0.08));
-  transform: translate3d(-14%, 0, 0) rotate(8deg);
-  animation: sheen-shift 8s linear infinite;
-  pointer-events: none;
+  padding: var(--space-3);
 }
 
 .x-progress {
@@ -274,43 +230,8 @@ today-queue-panel {
   width: 100%;
   transform-origin: left center;
   transform: scaleX(0);
-  background: linear-gradient(110deg, #22d3ee, #06b6d4 22%, #a855f7 46%, #ec4899 68%, #f59e0b 90%);
-  background-size: 220% 100%;
-  background-position: 0% 50%;
-  transition: transform 200ms linear;
-}
-
-.x-progress__bar.is-running {
-  animation: xPulse 1.8s ease-in-out infinite, xShift 3.8s linear infinite;
-}
-
-.x-progress__bar.is-paused {
-  filter: saturate(0.95) brightness(0.92);
-  animation-play-state: paused;
-}
-
-.x-progress--mini {
-  margin-top: var(--space-2);
-  height: 0.36rem;
-}
-
-@keyframes xPulse {
-  0%,
-  100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.2);
-  }
-}
-
-@keyframes xShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 220% 50%;
-  }
+  background: linear-gradient(90deg, #22d3ee, #a855f7);
+  transition: transform 220ms linear;
 }
 
 .x-goal-badges {
@@ -348,11 +269,6 @@ today-queue-panel {
   padding-top: var(--space-2);
 }
 
-.x-timeline-row.is-done {
-  opacity: 0.6;
-  text-decoration: line-through;
-}
-
 .x-timeline-title {
   word-break: break-word;
 }
@@ -365,18 +281,38 @@ today-queue-panel {
   color: #facc15;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .x-progress__bar,
-  .x-queue-now::after,
-  .x-goal-workspace.is-open {
-    transition: none;
-    animation: none;
-    background-position: 50% 50%;
-  }
+.x-rollover-banner {
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  color: #bcf6ff;
+  background: rgba(20, 47, 66, 0.35);
+}
+
+.x-unscheduled-wrap {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.x-unscheduled-row {
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+.x-analytics-day-row,
+.x-analytics-goal-row {
+  gap: var(--space-2);
+}
+
+.x-bump {
+  outline: 2px solid rgba(34, 211, 238, 0.45);
+  outline-offset: 2px;
 }
 
 @media (max-width: 56rem) {
   .x-timeline-row {
     grid-template-columns: 1fr;
+  }
+
+  .x-queue-mini {
+    top: 0.3rem;
   }
 }

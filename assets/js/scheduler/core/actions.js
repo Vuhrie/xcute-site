@@ -1,7 +1,6 @@
 import { api } from "./api.js";
 import { getState, setState } from "./store.js";
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_TIMELINE_DAYS = 30;
 
 function ensureSelectedGoal(goals) {
@@ -29,25 +28,8 @@ function queueDate() {
   return getState().queueDate || todayIso();
 }
 
-function isIsoDate(value) {
-  return DATE_RE.test(String(value || "").trim());
-}
-
 async function refreshScheduler(goalId = selectedGoalId()) {
-  await Promise.all([refreshGoalData(goalId), refreshTimeline(), refreshTodayQueue()]);
-}
-
-function maxTimelineTo(from) {
-  const fallback = addDays(from, DEFAULT_TIMELINE_DAYS);
-  const goals = getState().goals || [];
-  let max = fallback;
-  for (const goal of goals) {
-    const target = String(goal?.target_date || "").trim();
-    if (isIsoDate(target) && target > max) {
-      max = target;
-    }
-  }
-  return max;
+  await Promise.all([refreshGoalData(goalId), refreshTimeline(), refreshTodayQueue(), refreshAnalytics()]);
 }
 
 function applyQueueState(result) {
@@ -81,12 +63,32 @@ export async function refreshGoalData(goalId = getState().selectedGoalId) {
 
 export async function refreshTimeline(range = {}) {
   const from = range.from || todayIso();
-  const to = range.to || maxTimelineTo(from);
+  const to = range.to || addDays(from, DEFAULT_TIMELINE_DAYS);
   const result = await api.getTimeline({ from, to });
   setState({
     timelineItems: result.items || [],
     timelineGoals: result.goals || [],
+    unscheduledItems: result.unscheduled || [],
   });
+}
+
+export async function refreshAnalytics(range = {}) {
+  const from = range.from || todayIso();
+  const to = range.to || addDays(from, DEFAULT_TIMELINE_DAYS);
+  const [day, series] = await Promise.all([api.getAnalyticsDay(todayIso()), api.getAnalyticsRange({ from, to })]);
+  setState({
+    analyticsDay: day || null,
+    analyticsRange: series || null,
+  });
+}
+
+export async function runDailyRollover(date = todayIso()) {
+  const result = await api.rolloverAppOpen({ date });
+  setState({
+    rolloverBanner: result.banner_message || "",
+    rolloverConflicts: result.conflicts || [],
+  });
+  return result;
 }
 
 export async function refreshTodayQueue(date = todayIso()) {
@@ -107,6 +109,15 @@ export async function bootstrapScheduler() {
   }
 
   const selectedGoalId = await refreshGoals();
+  if (getState().writeKey) {
+    try {
+      await runDailyRollover(todayIso());
+    } catch {
+      setState({ rolloverBanner: "Rollover unavailable until write key is valid." });
+    }
+  } else {
+    setState({ rolloverBanner: "Set write key to run daily rollover." });
+  }
   await refreshScheduler(selectedGoalId);
 }
 
@@ -192,13 +203,15 @@ export async function spreadSelectedGoal({ startMode, targetDate }) {
   });
 
   await Promise.all([refreshTodayQueue(), refreshTimeline()]);
+  await refreshAnalytics();
   return result;
 }
 
-async function runQueueAction(request, payload = {}, { refreshSchedulerData = false } = {}) {
+async function runQueueAction(request, payload = {}, { refreshSchedulerData = false, refreshAnalyticsData = true } = {}) {
   const result = await request({ date: queueDate(), ...payload });
   applyQueueState(result);
   if (refreshSchedulerData) await Promise.all([refreshGoalData(), refreshTimeline()]);
+  if (refreshAnalyticsData) await refreshAnalytics();
 }
 
 export async function queueStart(entryId = "") {
@@ -219,4 +232,14 @@ export async function queueComplete() {
 
 export async function queueAckBreak(skipBreak = false) {
   await runQueueAction(api.queueAckBreak, { skip_break: Boolean(skipBreak) });
+}
+
+export async function queueReorder(entryId, direction) {
+  const result = await api.queueReorder({
+    date: queueDate(),
+    entry_id: entryId,
+    direction,
+  });
+  applyQueueState(result);
+  await refreshAnalytics();
 }

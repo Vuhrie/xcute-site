@@ -3,13 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      (() => {
-        const reduced = typeof document.documentElement.animate !== "function" || typeof window.IntersectionObserver !== "function";
-        document.documentElement.dataset.motionMode = "on";
-        document.documentElement.dataset.reducedMotion = reduced ? "true" : "false";
-      })();
-    </script>
     <title>XCute | Smart Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +13,6 @@
     <link rel="stylesheet" href="./assets/css/tokens.css" />
     <link rel="stylesheet" href="./assets/css/base.css" />
     <link rel="stylesheet" href="./assets/css/components.css" />
-    <link rel="stylesheet" href="./assets/css/animations.css" />
     <link rel="stylesheet" href="./assets/css/hub.css" />
     <script type="module" src="./assets/js/main.js"></script>
   </head>
@@ -29,37 +21,37 @@
     <div class="bg-orb bg-orb--right" aria-hidden="true"></div>
 
     <main class="l-page">
-      <section class="c-hero c-hub-hero" aria-labelledby="hero-title" data-animate="zoom-in" data-motion-role="hero" data-tilt>
-        <p class="c-kicker" data-animate="fade-up" data-stagger="40" data-motion-role="chip">XCute Hub</p>
-        <p class="c-version-badge js-version-badge" data-animate="zoom-in" data-delay="70" data-motion-role="chip">Version v0.5.5</p>
-        <h1 id="hero-title" class="c-hero__title js-hero-title" data-text="Helllo, I am XCute" data-motion-role="hero">
+      <section class="c-hero c-hub-hero" aria-labelledby="hero-title">
+        <p class="c-kicker">XCute Hub</p>
+        <p class="c-version-badge js-version-badge">Version v0.6.0</p>
+        <h1 id="hero-title" class="c-hero__title">
           Helllo, I am XCute
         </h1>
-        <p class="c-hero__subtitle" data-animate="fade-up" data-delay="120" data-motion-role="panel">
+        <p class="c-hero__subtitle">
           Your goal-focused productivity hub. Pick a module to continue.
         </p>
-        <a class="c-btn" href="#modules" data-animate="fade-up" data-delay="220" data-motion-role="chip" data-tilt>Open Modules</a>
+        <a class="c-btn" href="#modules">Open Modules</a>
       </section>
 
       <section id="modules" class="c-section" aria-labelledby="module-title">
-        <h2 id="module-title" class="c-section__title" data-animate="fade-up" data-motion-role="hero">Modules</h2>
+        <h2 id="module-title" class="c-section__title">Modules</h2>
         <div class="c-card-grid c-hub-grid">
-          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="80" data-motion-role="panel" data-tilt>
+          <article class="c-card c-hub-card">
             <h3 class="c-card__title">Smart Scheduler</h3>
             <p class="c-card__body">
               Create goals, rank tasks, and auto-spread work across dates by your daily hours.
             </p>
-            <a class="c-btn c-hub-card__btn" href="/scheduler" data-motion-role="chip" data-tilt>Open Scheduler</a>
+            <a class="c-btn c-hub-card__btn" href="/scheduler">Open Scheduler</a>
           </article>
-          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="160" data-motion-role="panel" data-tilt>
+          <article class="c-card c-hub-card">
             <h3 class="c-card__title">Focus Console</h3>
             <p class="c-card__body">Coming soon: daily focus sessions, review loops, and momentum tracking.</p>
-            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled data-motion-role="chip">Coming Soon</button>
+            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled>Coming Soon</button>
           </article>
-          <article class="c-card c-hub-card" data-animate="fade-up" data-delay="240" data-motion-role="panel" data-tilt>
+          <article class="c-card c-hub-card">
             <h3 class="c-card__title">Reflection Journal</h3>
             <p class="c-card__body">Coming soon: reflection prompts mapped back to goals and weekly outcomes.</p>
-            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled data-motion-role="chip">Coming Soon</button>
+            <button class="c-btn c-btn--muted c-hub-card__btn" type="button" disabled>Coming Soon</button>
           </article>
         </div>
       </section>

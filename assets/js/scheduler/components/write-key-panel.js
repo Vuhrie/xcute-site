@@ -1,9 +1,10 @@
 import { animatePanel, animateStateBump } from "../core/motion.js";
+import { refreshAnalytics, refreshTimeline, refreshTodayQueue, runDailyRollover } from "../core/actions.js";
 import { getState, setState, setWriteKey, subscribeSelector } from "../core/store.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
-  <section class="x-panel" data-animate="fade-up" data-motion-role="panel" data-reveal-start="0.86" data-reveal-threshold="0.32">
+  <section class="x-panel">
     <h3>Write Key</h3>
     <p class="x-small">Required for adding/editing goals, tasks, and plans.</p>
     <div class="x-inline">
@@ -66,6 +67,11 @@ export class WriteKeyPanel extends HTMLElement {
       const hasKey = Boolean(getState().writeKey);
       setState({ writeKeyWarning: hasKey ? "" : "Write key missing or incorrect. Update it and click Save Key." });
       this.status.textContent = hasKey ? "Write key saved in this browser." : "Key is empty.";
+      if (hasKey) {
+        runDailyRollover()
+          .then(() => Promise.all([refreshTodayQueue(), refreshTimeline(), refreshAnalytics()]))
+          .catch(() => {});
+      }
       animateStateBump(this.panel);
       return;
     }

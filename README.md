@@ -1,67 +1,51 @@
 # xcute-site
 
-XCute is a modular Cloudflare Worker app with a shared scheduler and a queue-first daily execution flow.
+XCute is a modular Cloudflare Worker app with a shared no-login scheduler focused on queue execution and goal progress.
 
-## What is in v0.5.5
+## What is in v0.6.0
 
-- Full-site cinematic motion system (hybrid CSS + WAAPI) across Hub and Scheduler
-- Motion contract via `html[data-motion-mode="on"]` + reusable `data-animate` / `data-motion-role` hooks
-- Motion is always on by default and only reduces when core animation APIs are unavailable
-- Space ambient layer (nebula drift + star field canvas) with hidden-tab throttling
-- Smooth route transitions between `/` and `/scheduler` with graceful fallback
-- Pointer-reactive card depth for desktop (`data-tilt`) with touch-safe fallback
-- Scheduler render stability patch: queue/timeline/workspace panels now use slice-based subscriptions + signature guards to avoid popping/replay on unchanged polling data
-- Queue/timeline/goals/workspace state transitions unified through shared scheduler motion helpers
-- Primary purple buttons now use a stronger right-to-left vertical wavy sweep animation
-- Scheduler layout is tighter so Planner appears sooner, with Today Queue list capped to internal scroll
-- Section reveal animation now follows viewport entry/exit (not one-time persistent reveal)
-- Reveal timing now triggers later and per panel (`Today Queue`, `Goals`, `Workspace`, `Full Timeline`) instead of one large planner wrapper trigger
-- Mount-time panel animations now defer to reveal hooks to avoid “already-finished” motion before a section is reached
-- Mobile animation caps + reduced-motion compliance preserved
-- Existing scheduler logic/API behavior unchanged from v0.4.4
+- Removed decorative cinematic/reveal motion from hub and scheduler.
+- Scheduler now prioritizes **Today Queue** with a sticky mini-player and pending-item reorder controls.
+- Added goal importance model (`low | medium | high`) and hard-deadline conflict persistence.
+- Added daily rollover API (`/api/rollover/app-open`) with summary banner + conflict reporting.
+- Added analytics APIs and UI for day/range execution trends, goal risk, and rollover load.
+- Timeline default window remains 30 days and now includes unscheduled conflicts.
 
 ## Routes
 
-- `GET /` hub page
-- `GET /scheduler` scheduler page
+- `GET /`
+- `GET /scheduler`
 - `GET /api/health`
 - `GET/POST/PATCH/DELETE /api/goals`
 - `GET/POST/PATCH/DELETE /api/tasks`
 - `POST /api/schedule/spread`
 - `GET /api/schedule/goal?goal_id=...`
 - `GET /api/schedule/timeline?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `POST /api/rollover/app-open`
+- `GET /api/analytics/day?date=YYYY-MM-DD`
+- `GET /api/analytics/range?from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/queue/today?date=YYYY-MM-DD`
 - `POST /api/queue/start`
 - `POST /api/queue/pause`
 - `POST /api/queue/skip`
+- `POST /api/queue/reorder`
 - `POST /api/queue/complete`
 - `POST /api/queue/break/ack` (optional body: `{ "skip_break": true }`)
 
-## Required bindings now
+## Required bindings
 
-- `ASSETS` (static assets)
-- `DB` (D1 database binding)
-- `WRITE_API_KEY` (Worker secret; used by client in `x-write-key` for mutating API requests)
+- `ASSETS`
+- `DB`
+- `WRITE_API_KEY`
 
 ### Permanent secret setup (one-time)
-
-Set your production secret once and keep it stable across deploys:
 
 ```bash
 npx wrangler secret put WRITE_API_KEY
 # value: WHATTHEHELLISABANANA69
 ```
 
-Or set the same value in Cloudflare Dashboard -> Worker -> Settings -> Variables and Secrets.
-
-Removed from the app:
-
-- `OTP_KV`
-- `SESSION_KV`
-- `RESEND_API_KEY`
-- `OTP_FROM_EMAIL`
-
-## Deploy settings (Cloudflare Workers from Git)
+## Deploy settings (Workers from Git)
 
 - Build command: *(empty)*
 - Deploy command: `npx wrangler versions upload`
@@ -71,9 +55,9 @@ Production URL:
 
 - `https://xcute-site.derpdiepie8523.workers.dev/`
 
-## D1 setup guide
+## D1 setup
 
-See `D1_SETUP.md` for setup and migration steps.
+See `D1_SETUP.md` and ensure migrations through `0005_planner_queue_v060.sql` are applied.
 
 ## Versioning
 
