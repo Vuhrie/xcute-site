@@ -17,7 +17,7 @@ function safeRun(task) {
 async function loadVersionLabel() {
   const node = document.getElementById("scheduler-version");
   if (!node) return;
-  node.textContent = "Version v0.6.0";
+  node.textContent = "Version v0.6.1";
   try {
     const text = (await (await fetch("./VERSION", { cache: "no-store" })).text()).trim();
     if (VERSION_RE.test(text)) node.textContent = `Version ${text}`;

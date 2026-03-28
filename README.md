@@ -2,7 +2,7 @@
 
 XCute is a modular Cloudflare Worker app with a shared no-login scheduler focused on queue execution and goal progress.
 
-## What is in v0.6.0
+## What is in v0.6.1
 
 - Removed decorative cinematic/reveal motion from hub and scheduler.
 - Scheduler now prioritizes **Today Queue** with a sticky mini-player and pending-item reorder controls.
@@ -10,6 +10,7 @@ XCute is a modular Cloudflare Worker app with a shared no-login scheduler focuse
 - Added daily rollover API (`/api/rollover/app-open`) with summary banner + conflict reporting.
 - Added analytics APIs and UI for day/range execution trends, goal risk, and rollover load.
 - Timeline default window remains 30 days and now includes unscheduled conflicts.
+- Fixed missing spacing tokens that caused panel text/content to sit too close to card borders.
 
 ## Routes
 

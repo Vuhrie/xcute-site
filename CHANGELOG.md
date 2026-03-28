@@ -2,6 +2,17 @@
 
 All notable changes for this project are documented in this file.
 
+## v0.6.1 - 2026-03-28
+
+### Fixed
+- Fixed cramped panel text/layout by restoring missing spacing tokens `--space-5` and `--space-7` in shared design tokens.
+- Restored intended inner panel padding/gap values across scheduler and hub cards that depended on those tokens.
+
+### Changed
+- Bumped runtime version labels and metadata to `v0.6.1`.
+
+Rollback: `backup/v0.6.1`
+
 ## v0.6.0 - 2026-03-28
 
 ### Added
